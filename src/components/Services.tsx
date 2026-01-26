@@ -1,4 +1,4 @@
-import { Fuel, Coffee, Car, CreditCard, Clock, ShoppingBag } from "lucide-react";
+import { Fuel, Coffee, UtensilsCrossed, CreditCard, Clock, ShoppingBag } from "lucide-react";
 
 const services = [
   {
@@ -12,9 +12,9 @@ const services = [
     description: "Hot, fresh coffee brewed throughout the day. Multiple roasts and flavors available.",
   },
   {
-    icon: Car,
-    title: "Car Wash",
-    description: "Automatic car wash available at select locations to keep your vehicle looking its best.",
+    icon: UtensilsCrossed,
+    title: "Fresh Food",
+    description: "Hunt's Brother Pizza, chicken, burgers, breakfast items, and fresh made food at select locations.",
   },
   {
     icon: CreditCard,
