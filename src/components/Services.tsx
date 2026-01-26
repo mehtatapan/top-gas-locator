@@ -3,8 +3,8 @@ import { Fuel, Coffee, Car, CreditCard, Clock, ShoppingBag } from "lucide-react"
 const services = [
   {
     icon: Fuel,
-    title: "Quality Fuel",
-    description: "Regular, Plus, and Premium gasoline at competitive prices. Diesel available at select locations.",
+    title: "Conoco Fuel",
+    description: "Premium Conoco gasoline - Regular, Plus, and Premium at competitive prices. Diesel available at select locations.",
   },
   {
     icon: Coffee,
@@ -45,7 +45,7 @@ export const Services = () => {
             Our Services
           </h2>
           <p className="mx-auto max-w-2xl text-muted-foreground">
-            Everything you need for the road and more. Stop by any VT Gas & Market location for quality fuel, 
+            Everything you need for the road and more. Stop by any VT Gas & Market location for quality Conoco fuel, 
             fresh refreshments, and friendly hometown service.
           </p>
         </div>

@@ -33,8 +33,8 @@ export const Hero = () => {
           </p>
           
           <p className="mb-8 max-w-lg text-lg text-primary-foreground/80">
-            Quality fuel, friendly service, and everything you need for the road. 
-            Find us across 5 convenient locations near you.
+            Quality Conoco fuel, friendly service, and everything you need for the road. 
+            Find us across 5 convenient Texas Panhandle locations.
           </p>
 
           <div className="flex flex-col gap-4 sm:flex-row">

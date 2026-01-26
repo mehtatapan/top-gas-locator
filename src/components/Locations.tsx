@@ -13,8 +13,8 @@ export const Locations = () => {
             Our 5 Locations
           </h2>
           <p className="mx-auto max-w-2xl text-muted-foreground">
-            VT Gas & Market has 5 convenient locations serving Springfield, Decatur, Bloomington, 
-            Champaign, and Peoria. Find the one nearest you!
+            VT Gas & Market has 5 convenient locations serving Fritch, Spearman, Borger, 
+            and Amarillo in the Texas Panhandle. Find the one nearest you!
           </p>
         </div>
 
