@@ -5,14 +5,14 @@ export const LocalBusinessSchema = () => {
     "@context": "https://schema.org",
     "@type": "Organization",
     name: "VT Gas & Market",
-    description: "VT Gas & Market - Your Hometown Stop. Quality fuel, convenience store, and friendly service at 5 locations in Illinois.",
+    description: "VT Gas & Market - Your Hometown Stop. Quality Conoco fuel, convenience store, and friendly service at 5 locations in the Texas Panhandle.",
     url: "https://vtgasmarket.com",
     logo: "https://vtgasmarket.com/logo.png",
     sameAs: [],
     department: locations.map((location) => ({
       "@type": "GasStation",
       name: location.name,
-      description: `VT Gas & Market gas station and convenience store in ${location.city}, ${location.state}. Quality fuel, fresh coffee, snacks, and friendly hometown service.`,
+      description: `VT Gas & Market Conoco gas station and convenience store in ${location.city}, ${location.state}. Quality Conoco fuel, fresh coffee, snacks, and friendly hometown service.`,
       address: {
         "@type": "PostalAddress",
         streetAddress: location.address,
@@ -31,8 +31,12 @@ export const LocalBusinessSchema = () => {
       priceRange: "$$",
       hasMap: location.googleMapsUrl,
       paymentAccepted: "Cash, Credit Card, Debit Card, Mobile Payment",
+      brand: {
+        "@type": "Brand",
+        name: "Conoco",
+      },
       amenityFeature: [
-        { "@type": "LocationFeatureSpecification", name: "Fuel" },
+        { "@type": "LocationFeatureSpecification", name: "Conoco Fuel" },
         { "@type": "LocationFeatureSpecification", name: "Convenience Store" },
         { "@type": "LocationFeatureSpecification", name: "ATM" },
         { "@type": "LocationFeatureSpecification", name: "Restrooms" },
