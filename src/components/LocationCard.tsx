@@ -1,4 +1,4 @@
-import { MapPin, Phone, Clock, Navigation } from "lucide-react";
+import { MapPin, Phone, Clock, Navigation, Utensils } from "lucide-react";
 import type { Location } from "@/data/locations";
 
 interface LocationCardProps {
@@ -54,6 +54,22 @@ export const LocationCard = ({ location }: LocationCardProps) => {
           <Clock className="h-4 w-4 shrink-0 text-primary" />
           <span itemProp="openingHours">{location.hours}</span>
         </div>
+
+        {location.foodOfferings && location.foodOfferings.length > 0 && (
+          <div className="flex items-start gap-3">
+            <Utensils className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            <div className="flex flex-wrap gap-1">
+              {location.foodOfferings.map((food, index) => (
+                <span 
+                  key={index}
+                  className="inline-block rounded-full bg-accent/20 px-2 py-0.5 text-xs font-medium text-accent-foreground"
+                >
+                  {food}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <a

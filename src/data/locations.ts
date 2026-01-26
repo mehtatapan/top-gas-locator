@@ -10,6 +10,7 @@ export interface Location {
   latitude: number;
   longitude: number;
   googleMapsUrl: string;
+  foodOfferings?: string[];
 }
 
 export const locations: Location[] = [
@@ -25,6 +26,7 @@ export const locations: Location[] = [
     latitude: 35.6392,
     longitude: -101.6034,
     googleMapsUrl: "https://maps.google.com/?q=100+E+Broadway+St+Fritch+TX+79036",
+    foodOfferings: ["Hunt's Brother Pizza", "Chicken", "Fried Items", "Burgers", "Breakfast Items"],
   },
   {
     id: "location-spearman",
@@ -34,10 +36,11 @@ export const locations: Location[] = [
     state: "TX",
     zip: "79081",
     phone: "(806) 555-0102",
-    hours: "5:00 AM - 11:00 PM",
+    hours: "24 Hours",
     latitude: 36.1987,
     longitude: -101.1918,
     googleMapsUrl: "https://maps.google.com/?q=107+Collard+St+Spearman+TX+79081",
+    foodOfferings: ["Hunt's Brother Pizza", "Chicken"],
   },
   {
     id: "location-borger",
@@ -51,6 +54,7 @@ export const locations: Location[] = [
     latitude: 35.6678,
     longitude: -101.3971,
     googleMapsUrl: "https://maps.google.com/?q=3302+Fairlanes+Blvd+Borger+TX+79007",
+    foodOfferings: ["Fresh Made Food"],
   },
   {
     id: "location-amarillo-coulter",
@@ -60,7 +64,7 @@ export const locations: Location[] = [
     state: "TX",
     zip: "79121",
     phone: "(806) 555-0104",
-    hours: "24 Hours",
+    hours: "6:00 AM - 11:00 PM",
     latitude: 35.1814,
     longitude: -101.9101,
     googleMapsUrl: "https://maps.google.com/?q=3400+Coulter+St+S+Amarillo+TX+79121",
@@ -73,7 +77,7 @@ export const locations: Location[] = [
     state: "TX",
     zip: "79109",
     phone: "(806) 555-0105",
-    hours: "5:00 AM - 12:00 AM",
+    hours: "6:00 AM - 11:00 PM",
     latitude: 35.1654,
     longitude: -101.8876,
     googleMapsUrl: "https://maps.google.com/?q=4430+S+Western+St+Amarillo+TX+79109",

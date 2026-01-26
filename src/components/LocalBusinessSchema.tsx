@@ -27,7 +27,7 @@ export const LocalBusinessSchema = () => {
         longitude: location.longitude,
       },
       telephone: location.phone,
-      openingHours: location.hours === "24 Hours" ? "Mo-Su 00:00-24:00" : "Mo-Su 05:00-23:00",
+      openingHours: location.hours === "24 Hours" ? "Mo-Su 00:00-24:00" : "Mo-Su 06:00-23:00",
       priceRange: "$$",
       hasMap: location.googleMapsUrl,
       paymentAccepted: "Cash, Credit Card, Debit Card, Mobile Payment",
