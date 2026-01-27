@@ -10,22 +10,30 @@ export const InteractiveMap = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if script is already loaded
-    if (window.google?.maps) {
+    // Check if API is already fully loaded
+    if (window.google?.maps?.Map) {
       setIsLoaded(true);
       return;
     }
 
-    // Load Google Maps script with async loading
+    // Define callback for when Maps API is ready
+    const callbackName = "initGoogleMaps";
+    (window as any)[callbackName] = () => {
+      setIsLoaded(true);
+    };
+
+    // Load Google Maps script with callback
     const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&loading=async`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&callback=${callbackName}`;
     script.async = true;
     script.defer = true;
-    
-    script.onload = () => setIsLoaded(true);
     script.onerror = () => setError("Failed to load Google Maps");
     
     document.head.appendChild(script);
+
+    return () => {
+      delete (window as any)[callbackName];
+    };
   }, []);
 
   useEffect(() => {
