@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { locations } from "@/data/locations";
-import vtLogo from "@/assets/vt-logo.png";
+import vtLogo from "@/assets/vt-logo-transparent.png";
 
 const GOOGLE_MAPS_API_KEY = "AIzaSyB4bmAc1wVXxnHwKrJueOH-ZQwV_JwR1JQ";
 
