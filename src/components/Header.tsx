@@ -18,7 +18,7 @@ export const Header = () => {
           <img 
             src={vtLogo} 
             alt="VT Gas & Market Logo" 
-            className="h-12 w-12 rounded-full md:h-14 md:w-14"
+            className="h-12 w-12 md:h-14 md:w-14"
           />
           <div className="hidden sm:block">
             <span className="font-display text-xl font-bold text-foreground md:text-2xl">
