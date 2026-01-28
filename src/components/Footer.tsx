@@ -1,4 +1,4 @@
-import vtLogo from "@/assets/vt-logo.png";
+import vtLogo from "@/assets/vt-logo-transparent.png";
 import { locations } from "@/data/locations";
 import { Mail, Phone, MapPin } from "lucide-react";
 
@@ -9,7 +9,7 @@ export const Footer = () => {
         <div className="grid gap-12 lg:grid-cols-4">
           <div className="lg:col-span-1">
             <div className="mb-4 flex items-center gap-3">
-              <img src={vtLogo} alt="VT Gas & Market" className="h-12 w-12" />
+              <img src={vtLogo} alt="VT Gas & Market" className="h-12 w-12 rounded-full" />
               <div>
                 <p className="font-display text-xl font-bold">VT Gas & Market</p>
                 <p className="text-sm text-secondary-foreground/70">Your Hometown Stop</p>
