@@ -1,4 +1,4 @@
-import vtLogo from "@/assets/vt-logo-transparent.png";
+import vtLogo from "@/assets/vt-logo.png";
 import { locations } from "@/data/locations";
 import { Mail, Phone, MapPin } from "lucide-react";
 
