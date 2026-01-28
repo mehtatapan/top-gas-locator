@@ -76,23 +76,22 @@ export const InteractiveMap = () => {
           <p style="margin: 0 0 8px; font-size: 12px; color: #666;">
             <strong>Phone:</strong> ${location.phone}
           </p>
-          <a 
-            href="${location.googleMapsUrl}" 
-            target="_blank" 
-            rel="noopener noreferrer"
+          <button 
+            onclick="window.open('${location.googleMapsUrl}', '_blank', 'noopener,noreferrer')"
             style="
               display: inline-block;
               background: #dc2626;
               color: white;
               padding: 6px 12px;
               border-radius: 4px;
-              text-decoration: none;
+              border: none;
+              cursor: pointer;
               font-size: 12px;
               font-weight: 600;
             "
           >
             Get Directions
-          </a>
+          </button>
         </div>
       `;
 
