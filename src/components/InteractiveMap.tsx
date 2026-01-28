@@ -16,9 +16,9 @@ export const InteractiveMap = () => {
       return;
     }
 
-    // Load Google Maps script with async loading
+    // Load Google Maps script
     const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&loading=async`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=marker`;
     script.async = true;
     script.defer = true;
     
@@ -26,6 +26,10 @@ export const InteractiveMap = () => {
     script.onerror = () => setError("Failed to load Google Maps");
     
     document.head.appendChild(script);
+
+    return () => {
+      // Cleanup if needed
+    };
   }, []);
 
   useEffect(() => {
@@ -50,8 +54,40 @@ export const InteractiveMap = () => {
       fullscreenControl: true,
     });
 
-    // Create markers with custom logo icon
+    // Create custom markers with logo
     locations.forEach((location) => {
+      const markerElement = document.createElement("div");
+      markerElement.className = "custom-marker";
+      markerElement.innerHTML = `
+        <div style="
+          width: 48px;
+          height: 48px;
+          background: white;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+          border: 3px solid #dc2626;
+          cursor: pointer;
+          transition: transform 0.2s ease;
+        ">
+          <img 
+            src="${vtLogo}" 
+            alt="VT Gas & Market" 
+            style="width: 36px; height: 36px; object-fit: contain; border-radius: 50%;"
+          />
+        </div>
+        <div style="
+          width: 0;
+          height: 0;
+          border-left: 8px solid transparent;
+          border-right: 8px solid transparent;
+          border-top: 10px solid #dc2626;
+          margin: -2px auto 0;
+        "></div>
+      `;
+
       // Create info window content
       const infoContent = `
         <div style="padding: 8px; max-width: 220px;">
@@ -92,20 +128,34 @@ export const InteractiveMap = () => {
         content: infoContent,
       });
 
-      // Use regular marker with custom logo icon
-      const marker = new window.google.maps.Marker({
-        map,
-        position: { lat: location.latitude, lng: location.longitude },
-        title: location.name,
-        icon: {
-          url: vtLogo,
-          scaledSize: new window.google.maps.Size(44, 44),
-        },
-      });
+      // Use Advanced Marker if available, fallback to regular marker
+      if (window.google.maps.marker?.AdvancedMarkerElement) {
+        const advancedMarker = new window.google.maps.marker.AdvancedMarkerElement({
+          map,
+          position: { lat: location.latitude, lng: location.longitude },
+          content: markerElement,
+          title: location.name,
+        });
 
-      marker.addListener("click", () => {
-        infoWindow.open(map, marker);
-      });
+        advancedMarker.addListener("click", () => {
+          infoWindow.open(map, advancedMarker);
+        });
+      } else {
+        // Fallback to regular marker with custom icon
+        const marker = new window.google.maps.Marker({
+          map,
+          position: { lat: location.latitude, lng: location.longitude },
+          title: location.name,
+          icon: {
+            url: vtLogo,
+            scaledSize: new window.google.maps.Size(40, 40),
+          },
+        });
+
+        marker.addListener("click", () => {
+          infoWindow.open(map, marker);
+        });
+      }
     });
   }, [isLoaded]);
 
