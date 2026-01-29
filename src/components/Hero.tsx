@@ -46,7 +46,7 @@ export const Hero = () => {
               Find a Location
             </button>
             <a
-              href="tel:+12175550101"
+              href="tel:+18068980494"
               className="flex items-center justify-center rounded-md border-2 border-primary-foreground/30 px-8 py-4 font-display text-lg font-semibold text-primary-foreground transition-all duration-200 hover:border-primary-foreground hover:bg-primary-foreground/10"
             >
               Call Us Today
