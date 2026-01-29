@@ -21,18 +21,18 @@ export const Footer = () => {
             </p>
             <div className="space-y-2 text-sm">
               <a 
-                href="mailto:info@vtgasmarket.com" 
+                href="mailto:vtgminfo@gmail.com" 
                 className="flex items-center gap-2 transition-colors hover:text-accent"
               >
                 <Mail className="h-4 w-4" />
-                info@vtgasmarket.com
+                vtgminfo@gmail.com
               </a>
               <a 
-                href="tel:+12175550101" 
+                href="tel:+18068980494" 
                 className="flex items-center gap-2 transition-colors hover:text-accent"
               >
                 <Phone className="h-4 w-4" />
-                (217) 555-0101
+                +1 (806) 898-0494
               </a>
             </div>
           </div>

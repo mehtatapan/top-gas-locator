@@ -1,4 +1,5 @@
 import { MapPin, Phone, Clock, Navigation, Utensils } from "lucide-react";
+import { Link } from "react-router-dom";
 import type { Location } from "@/data/locations";
 
 interface LocationCardProps {
@@ -72,15 +73,22 @@ export const LocationCard = ({ location }: LocationCardProps) => {
         )}
       </div>
 
-      <a
-        href={location.googleMapsUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-5 flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 font-semibold text-primary-foreground transition-all duration-200 hover:bg-primary/90"
-      >
-        <Navigation className="h-4 w-4" />
-        Get Directions
-      </a>
+      <div className="mt-5 flex gap-2">
+        <Link
+          to={`/location/${location.id}`}
+          className="flex flex-1 items-center justify-center gap-2 rounded-md border border-primary px-4 py-2.5 font-semibold text-primary transition-all duration-200 hover:bg-primary hover:text-primary-foreground"
+        >
+          View Details
+        </Link>
+        <a
+          href={location.googleMapsUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 font-semibold text-primary-foreground transition-all duration-200 hover:bg-primary/90"
+        >
+          <Navigation className="h-4 w-4" />
+        </a>
+      </div>
 
       <meta itemProp="latitude" content={String(location.latitude)} />
       <meta itemProp="longitude" content={String(location.longitude)} />

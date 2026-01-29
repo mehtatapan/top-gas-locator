@@ -4,13 +4,13 @@ export const About = () => {
       <div className="container">
         <div className="mx-auto max-w-3xl text-center">
           <span className="mb-2 inline-block font-semibold text-accent">
-            Since 1995
+            Est. 2025
           </span>
           <h2 className="mb-6 font-display text-3xl font-bold sm:text-4xl">
             Your Hometown Stop
           </h2>
           <p className="mb-6 text-lg text-secondary-foreground/80">
-            For nearly three decades, VT Gas & Market has been serving our communities with 
+            VT Gas & Market is proudly serving our communities with 
             quality fuel, fresh products, and the kind of friendly service that makes you feel right at home.
           </p>
           <p className="text-secondary-foreground/80">
@@ -26,8 +26,8 @@ export const About = () => {
               <p className="mt-2 text-sm text-secondary-foreground/70">Convenient Locations</p>
             </div>
             <div>
-              <p className="font-display text-4xl font-bold text-accent">30+</p>
-              <p className="mt-2 text-sm text-secondary-foreground/70">Years of Service</p>
+              <p className="font-display text-4xl font-bold text-accent">New</p>
+              <p className="mt-2 text-sm text-secondary-foreground/70">& Growing</p>
             </div>
             <div>
               <p className="font-display text-4xl font-bold text-accent">24/7</p>
