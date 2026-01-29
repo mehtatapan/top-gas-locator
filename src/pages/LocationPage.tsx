@@ -2,6 +2,8 @@ import { useParams, Link } from "react-router-dom";
 import { locations } from "@/data/locations";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { LocationSEO } from "@/components/LocationSEO";
+import { StorePromotions } from "@/components/StorePromotions";
 import { MapPin, Phone, Clock, Navigation, Utensils, ArrowLeft, Fuel, Coffee, CreditCard } from "lucide-react";
 
 // Stock images for store photos (to be replaced with real photos later)
@@ -57,6 +59,7 @@ const LocationPage = () => {
 
   return (
     <>
+      <LocationSEO location={location} />
       <Header />
       <main>
         {/* Hero Section */}
@@ -210,6 +213,9 @@ const LocationPage = () => {
             </div>
           </div>
         </section>
+
+        {/* Store Promotions */}
+        <StorePromotions locationName={location.name} />
 
         {/* Map Embed */}
         <section className="py-16">
