@@ -9,7 +9,7 @@ interface LocationCardProps {
 export const LocationCard = ({ location }: LocationCardProps) => {
   return (
     <article
-      className="group relative overflow-hidden rounded-lg bg-card p-6 card-shadow transition-all duration-300 hover:elevated-shadow hover:-translate-y-1"
+      className="group relative overflow-hidden rounded-lg bg-[hsl(var(--card-elevated))] p-6 card-shadow transition-all duration-300 hover:elevated-shadow hover:-translate-y-1"
       itemScope
       itemType="https://schema.org/GasStation"
     >

@@ -54,7 +54,7 @@ export const Services = () => {
           {services.map((service) => (
             <div
               key={service.title}
-              className="group rounded-lg bg-card p-6 card-shadow transition-all duration-300 hover:-translate-y-1"
+              className="group rounded-lg bg-[hsl(var(--card-elevated))] p-6 card-shadow transition-all duration-300 hover:-translate-y-1"
             >
               <div className="mb-4 inline-flex rounded-lg bg-primary/10 p-3">
                 <service.icon className="h-6 w-6 text-primary" />
