@@ -55,7 +55,7 @@ export const StorePromotions = ({ locationName, promotions = defaultPromotions }
           {promotions.map((promo, index) => (
             <div
               key={index}
-              className="group overflow-hidden rounded-xl bg-card card-shadow transition-all duration-300 hover:-translate-y-1 hover:elevated-shadow"
+              className="group overflow-hidden rounded-xl bg-[hsl(var(--card-elevated))] card-shadow transition-all duration-300 hover:-translate-y-1 hover:elevated-shadow"
             >
               <div className="relative h-48 overflow-hidden">
                 <img

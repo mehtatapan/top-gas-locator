@@ -199,15 +199,15 @@ const LocationPage = () => {
               {promotions.map((promo, index) => (
                 <div
                   key={index}
-                  className="rounded-lg bg-secondary p-6 card-shadow transition-all duration-300 hover:-translate-y-1 hover:elevated-shadow"
+                  className="rounded-lg bg-[hsl(var(--card-elevated))] p-6 card-shadow transition-all duration-300 hover:-translate-y-1 hover:elevated-shadow"
                 >
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/20">
-                    <promo.icon className="h-6 w-6 text-accent" />
+                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                    <promo.icon className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="mb-2 font-display text-lg font-bold text-secondary-foreground">
+                  <h3 className="mb-2 font-display text-lg font-bold text-foreground">
                     {promo.title}
                   </h3>
-                  <p className="text-sm text-secondary-foreground/70">{promo.description}</p>
+                  <p className="text-sm text-muted-foreground">{promo.description}</p>
                 </div>
               ))}
             </div>
