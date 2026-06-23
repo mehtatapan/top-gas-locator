@@ -18,11 +18,25 @@ export const Locations = () => {
           </p>
         </div>
 
+        <div className="mb-10 overflow-hidden rounded-lg card-shadow">
+          <iframe
+            title="VT Gas & Market locations map"
+            src="https://www.google.com/maps?q=VT+Gas+and+Market+Texas+Panhandle&output=embed"
+            width="100%"
+            height="420"
+            style={{ border: 0 }}
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+            allowFullScreen
+          />
+        </div>
+
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {locations.map((location) => (
             <LocationCard key={location.id} location={location} />
           ))}
         </div>
+
       </div>
     </section>
   );
