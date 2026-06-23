@@ -8,7 +8,7 @@ interface LocationSEOProps {
 export const LocationSEO = ({ location }: LocationSEOProps) => {
   const pageTitle = `${location.name} | Gas Station & Convenience Store in ${location.city}, TX`;
   const pageDescription = `Visit ${location.name} at ${location.address}, ${location.city}, TX ${location.zip}. Quality Conoco fuel, fresh coffee, snacks, and convenience store items. ${location.hours === "24 Hours" ? "Open 24 hours." : `Hours: ${location.hours}.`} Call ${location.phone}.`;
-  const canonicalUrl = `https://vtgasandmarket.com/location/${location.id}`;
+  const canonicalUrl = `https://www.vtgasandmarket.com/location/${location.id}`;
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -41,7 +41,7 @@ export const LocationSEO = ({ location }: LocationSEOProps) => {
     parentOrganization: {
       "@type": "Organization",
       name: "VT Gas & Market",
-      url: "https://vtgasandmarket.com",
+      url: "https://www.vtgasandmarket.com",
     },
     amenityFeature: [
       { "@type": "LocationFeatureSpecification", name: "Conoco Fuel", value: true },
@@ -80,7 +80,7 @@ export const LocationSEO = ({ location }: LocationSEOProps) => {
       <meta property="og:title" content={pageTitle} />
       <meta property="og:description" content={pageDescription} />
       <meta property="og:url" content={canonicalUrl} />
-      <meta property="og:image" content="https://vtgasandmarket.com/store-sign.jpg" />
+      <meta property="og:image" content="https://www.vtgasandmarket.com/store-sign.jpg" />
       <meta property="og:site_name" content="VT Gas & Market" />
       <meta property="business:contact_data:street_address" content={location.address} />
       <meta property="business:contact_data:locality" content={location.city} />
