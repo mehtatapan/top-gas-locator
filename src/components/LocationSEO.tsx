@@ -10,6 +10,16 @@ export const LocationSEO = ({ location }: LocationSEOProps) => {
   const pageDescription = `Visit ${location.name} at ${location.address}, ${location.city}, TX ${location.zip}. Quality Conoco fuel, fresh coffee, snacks, and convenience store items. ${location.hours === "24 Hours" ? "Open 24 hours." : `Hours: ${location.hours}.`} Call ${location.phone}.`;
   const canonicalUrl = `https://www.vtgasandmarket.com/location/${location.id}`;
 
+  const breadcrumbData = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: "https://www.vtgasandmarket.com/" },
+      { "@type": "ListItem", position: 2, name: "Locations", item: "https://www.vtgasandmarket.com/#locations" },
+      { "@type": "ListItem", position: 3, name: location.name, item: canonicalUrl },
+    ],
+  };
+
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "GasStation",
