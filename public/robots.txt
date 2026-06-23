@@ -16,4 +16,4 @@ User-agent: *
 Allow: /
 
 # Sitemap
-Sitemap: https://vtgasmarket.com/sitemap.xml
+Sitemap: https://www.vtgasandmarket.com/sitemap.xml

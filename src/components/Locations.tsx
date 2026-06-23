@@ -1,6 +1,5 @@
 import { locations } from "@/data/locations";
 import { LocationCard } from "./LocationCard";
-import { InteractiveMap } from "./InteractiveMap";
 
 export const Locations = () => {
   return (
@@ -14,13 +13,9 @@ export const Locations = () => {
             Our 5 Locations
           </h2>
           <p className="mx-auto max-w-2xl text-muted-foreground">
-            VT Gas & Market has 5 convenient locations serving Fritch, Spearman, Borger, 
+            VT Gas & Market has 5 convenient locations serving Fritch, Spearman, Borger,
             and Amarillo in the Texas Panhandle. Find the one nearest you!
           </p>
-        </div>
-
-        <div className="mb-10">
-          <InteractiveMap />
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

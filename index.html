@@ -17,8 +17,8 @@
     <meta property="og:title" content="VT Gas & Market | Your Hometown Stop - Conoco Gas Station" />
     <meta property="og:description" content="Quality Conoco fuel and convenience store at 5 locations across the Texas Panhandle. Fresh coffee, snacks, and friendly hometown service. Open 24 hours at select locations." />
     <meta property="og:site_name" content="VT Gas & Market" />
-    <meta property="og:url" content="https://vtgasmarket.com" />
-    <meta property="og:image" content="https://vtgasmarket.com/store-sign.jpg" />
+    <meta property="og:url" content="https://www.vtgasandmarket.com" />
+    <meta property="og:image" content="https://www.vtgasandmarket.com/store-sign.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:locale" content="en_US" />
@@ -27,10 +27,10 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="VT Gas & Market | Conoco Gas Station & Convenience Store" />
     <meta name="twitter:description" content="Find quality Conoco fuel, fresh coffee, and friendly service at our 5 convenient Texas Panhandle locations." />
-    <meta name="twitter:image" content="https://vtgasmarket.com/store-sign.jpg" />
+    <meta name="twitter:image" content="https://www.vtgasandmarket.com/store-sign.jpg" />
 
     <!-- Canonical -->
-    <link rel="canonical" href="https://vtgasmarket.com" />
+    <link rel="canonical" href="https://www.vtgasandmarket.com" />
 
     <!-- Geo tags for Local SEO -->
     <meta name="geo.region" content="US-TX" />
@@ -45,6 +45,33 @@
     <!-- Preconnect for performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Organization + WebSite JSON-LD (sitewide, server-rendered for crawlers) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://www.vtgasandmarket.com/#organization",
+          "name": "VT Gas & Market",
+          "alternateName": ["VT Gas and Market", "VT Gas"],
+          "url": "https://www.vtgasandmarket.com",
+          "logo": "https://www.vtgasandmarket.com/VT-Logo.png",
+          "description": "VT Gas & Market - Conoco gas station and convenience store with 5 locations across the Texas Panhandle: Fritch, Spearman, Borger, and Amarillo, Texas.",
+          "areaServed": { "@type": "State", "name": "Texas" }
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://www.vtgasandmarket.com/#website",
+          "url": "https://www.vtgasandmarket.com",
+          "name": "VT Gas & Market",
+          "publisher": { "@id": "https://www.vtgasandmarket.com/#organization" },
+          "inLanguage": "en-US"
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <!-- Single Page Apps for GitHub Pages redirect script -->

@@ -8,11 +8,21 @@ interface LocationSEOProps {
 export const LocationSEO = ({ location }: LocationSEOProps) => {
   const pageTitle = `${location.name} | Gas Station & Convenience Store in ${location.city}, TX`;
   const pageDescription = `Visit ${location.name} at ${location.address}, ${location.city}, TX ${location.zip}. Quality Conoco fuel, fresh coffee, snacks, and convenience store items. ${location.hours === "24 Hours" ? "Open 24 hours." : `Hours: ${location.hours}.`} Call ${location.phone}.`;
-  const canonicalUrl = `https://vtgasmarket.com/location/${location.id}`;
+  const canonicalUrl = `https://www.vtgasandmarket.com/location/${location.id}`;
+
+  const breadcrumbData = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: "https://www.vtgasandmarket.com/" },
+      { "@type": "ListItem", position: 2, name: "Locations", item: "https://www.vtgasandmarket.com/#locations" },
+      { "@type": "ListItem", position: 3, name: location.name, item: canonicalUrl },
+    ],
+  };
 
   const structuredData = {
     "@context": "https://schema.org",
-    "@type": "GasStation",
+    "@type": ["GasStation", "ConvenienceStore", "LocalBusiness"],
     name: location.name,
     description: pageDescription,
     url: canonicalUrl,
@@ -41,7 +51,7 @@ export const LocationSEO = ({ location }: LocationSEOProps) => {
     parentOrganization: {
       "@type": "Organization",
       name: "VT Gas & Market",
-      url: "https://vtgasmarket.com",
+      url: "https://www.vtgasandmarket.com",
     },
     amenityFeature: [
       { "@type": "LocationFeatureSpecification", name: "Conoco Fuel", value: true },
@@ -80,7 +90,7 @@ export const LocationSEO = ({ location }: LocationSEOProps) => {
       <meta property="og:title" content={pageTitle} />
       <meta property="og:description" content={pageDescription} />
       <meta property="og:url" content={canonicalUrl} />
-      <meta property="og:image" content="https://vtgasmarket.com/store-sign.jpg" />
+      <meta property="og:image" content="https://www.vtgasandmarket.com/store-sign.jpg" />
       <meta property="og:site_name" content="VT Gas & Market" />
       <meta property="business:contact_data:street_address" content={location.address} />
       <meta property="business:contact_data:locality" content={location.city} />
@@ -101,6 +111,7 @@ export const LocationSEO = ({ location }: LocationSEOProps) => {
 
       {/* Structured Data */}
       <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
+      <script type="application/ld+json">{JSON.stringify(breadcrumbData)}</script>
     </Helmet>
   );
 };
