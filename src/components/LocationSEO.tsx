@@ -111,6 +111,7 @@ export const LocationSEO = ({ location }: LocationSEOProps) => {
 
       {/* Structured Data */}
       <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
+      <script type="application/ld+json">{JSON.stringify(breadcrumbData)}</script>
     </Helmet>
   );
 };
