@@ -223,24 +223,41 @@ const LocationPage = () => {
             <h2 className="mb-8 text-center font-display text-2xl font-bold text-foreground sm:text-3xl">
               Find Us
             </h2>
-            <div className="mx-auto max-w-2xl rounded-lg bg-[hsl(var(--card-elevated))] p-8 text-center card-shadow">
-              <MapPin className="mx-auto mb-4 h-10 w-10 text-primary" />
-              <p className="mb-1 font-semibold text-foreground">{location.name}</p>
-              <p className="mb-6 text-muted-foreground">
-                {location.address}, {location.city}, {location.state} {location.zip}
-              </p>
-              <a
-                href={location.googleMapsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 font-semibold text-primary-foreground transition-all duration-200 hover:bg-primary/90"
-              >
-                <Navigation className="h-5 w-5" />
-                Open in Google Maps
-              </a>
+            <div className="mx-auto max-w-4xl space-y-6">
+              <div className="overflow-hidden rounded-lg card-shadow">
+                <iframe
+                  title={`Map of ${location.name}`}
+                  src={`https://www.google.com/maps?q=${encodeURIComponent(
+                    `${location.address}, ${location.city}, ${location.state} ${location.zip}`
+                  )}&output=embed`}
+                  width="100%"
+                  height="400"
+                  style={{ border: 0 }}
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  allowFullScreen
+                />
+              </div>
+              <div className="rounded-lg bg-[hsl(var(--card-elevated))] p-6 text-center card-shadow">
+                <MapPin className="mx-auto mb-3 h-8 w-8 text-primary" />
+                <p className="mb-1 font-semibold text-foreground">{location.name}</p>
+                <p className="mb-5 text-muted-foreground">
+                  {location.address}, {location.city}, {location.state} {location.zip}
+                </p>
+                <a
+                  href={location.googleMapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 font-semibold text-primary-foreground transition-all duration-200 hover:bg-primary/90"
+                >
+                  <Navigation className="h-5 w-5" />
+                  Open in Google Maps
+                </a>
+              </div>
             </div>
           </div>
         </section>
+
       </main>
       <Footer />
     </>
