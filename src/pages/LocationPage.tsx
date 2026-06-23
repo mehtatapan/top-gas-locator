@@ -217,24 +217,27 @@ const LocationPage = () => {
         {/* Store Promotions */}
         <StorePromotions locationName={location.name} />
 
-        {/* Map Embed */}
+        {/* Directions */}
         <section className="py-16">
           <div className="container">
             <h2 className="mb-8 text-center font-display text-2xl font-bold text-foreground sm:text-3xl">
               Find Us
             </h2>
-            <div className="overflow-hidden rounded-lg border border-border shadow-lg">
-              <iframe
-                title={`Map of ${location.name}`}
-                src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyB4bmAc1wVXxnHwKrJueOH-ZQwV_JwR1JQ&q=${encodeURIComponent(
-                  `${location.address}, ${location.city}, ${location.state} ${location.zip}`
-                )}`}
-                className="h-[400px] w-full"
-                style={{ border: 0 }}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-              />
+            <div className="mx-auto max-w-2xl rounded-lg bg-[hsl(var(--card-elevated))] p-8 text-center card-shadow">
+              <MapPin className="mx-auto mb-4 h-10 w-10 text-primary" />
+              <p className="mb-1 font-semibold text-foreground">{location.name}</p>
+              <p className="mb-6 text-muted-foreground">
+                {location.address}, {location.city}, {location.state} {location.zip}
+              </p>
+              <a
+                href={location.googleMapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 font-semibold text-primary-foreground transition-all duration-200 hover:bg-primary/90"
+              >
+                <Navigation className="h-5 w-5" />
+                Open in Google Maps
+              </a>
             </div>
           </div>
         </section>
