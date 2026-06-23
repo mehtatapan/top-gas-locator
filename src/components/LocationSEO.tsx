@@ -22,7 +22,7 @@ export const LocationSEO = ({ location }: LocationSEOProps) => {
 
   const structuredData = {
     "@context": "https://schema.org",
-    "@type": "GasStation",
+    "@type": ["GasStation", "ConvenienceStore", "LocalBusiness"],
     name: location.name,
     description: pageDescription,
     url: canonicalUrl,
