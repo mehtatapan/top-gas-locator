@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { locations } from "@/data/locations";
+import vtLogo from "@/assets/vt-logo-transparent.png";
 
 declare global {
   interface Window {
@@ -66,6 +67,11 @@ export const LocationsMap = () => {
             position,
             map,
             title: loc.name,
+            icon: {
+              url: vtLogo,
+              scaledSize: new window.google.maps.Size(48, 48),
+              anchor: new window.google.maps.Point(24, 24),
+            },
           });
 
           marker.addListener("click", () => {
