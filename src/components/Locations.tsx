@@ -1,5 +1,6 @@
 import { locations } from "@/data/locations";
 import { LocationCard } from "./LocationCard";
+import { LocationsMap } from "./LocationsMap";
 
 export const Locations = () => {
   return (
@@ -19,16 +20,7 @@ export const Locations = () => {
         </div>
 
         <div className="mb-10 overflow-hidden rounded-lg card-shadow">
-          <iframe
-            title="VT Gas & Market locations map"
-            src="https://www.google.com/maps?q=VT+Gas+and+Market+Texas+Panhandle&output=embed"
-            width="100%"
-            height="420"
-            style={{ border: 0 }}
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            allowFullScreen
-          />
+          <LocationsMap />
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
