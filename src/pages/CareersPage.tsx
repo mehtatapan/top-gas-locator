@@ -78,6 +78,13 @@ const CareersPage = () => {
         <meta property="og:description" content="Hiring hardworking, customer-focused team members across 5 Texas Panhandle locations." />
         <meta property="og:url" content="/careers" />
         <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://www.vtgasandmarket.com/og-careers.jpg" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Careers at VT Gas & Market" />
+        <meta name="twitter:description" content="Now hiring across 5 Texas Panhandle locations." />
+        <meta name="twitter:image" content="https://www.vtgasandmarket.com/og-careers.jpg" />
         {jobPostingsLd.map((ld, i) => (
           <script key={i} type="application/ld+json">{JSON.stringify(ld)}</script>
         ))}
