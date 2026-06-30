@@ -17,6 +17,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { supabase } from "@/integrations/supabase/client";
+
 
 import { positions, storeLocationOptions } from "@/data/positions";
 import {
@@ -91,17 +93,33 @@ export const ApplicationForm = ({ defaultPosition }: Props) => {
     setSubmitting(true);
     try {
       const applicationId = `VTGM-${Date.now().toString(36).toUpperCase()}`;
+      // Read resume as base64
+      const resumeBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(",")[1] ?? "");
+        };
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(resume);
+      });
+
       const payload = {
         applicationId,
         submittedAt: new Date().toISOString(),
         ...data,
-        availability: serializeAvailability(availability),
-        availabilityRaw: availability,
+        availabilitySummary: serializeAvailability(availability),
         resumeFileName: resume.name,
+        resumeContentType: resume.type || "application/octet-stream",
+        resumeBase64,
       };
-      // Stub: log payload. Backend wiring is added in Track B (see chat).
-      console.info("[VTGM Application]", payload);
-      await new Promise((r) => setTimeout(r, 900));
+
+      const { data: result, error } = await supabase.functions.invoke("submit-application", {
+        body: payload,
+      });
+      if (error) throw error;
+      if (result?.error) throw new Error(result.error);
+
       setSubmitted({ applicationId });
       toast.success("Application submitted!");
       window.scrollTo({ top: document.getElementById("apply")?.offsetTop ?? 0, behavior: "smooth" });
