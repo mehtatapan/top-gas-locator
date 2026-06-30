@@ -49,10 +49,11 @@ async function parseForm(req: VercelRequest) {
 }
 
 function val(f: formidable.Fields, key: string): string {
-  const v = f[key];
-  if (Array.isArray(v)) return (v[0] ?? "").toString();
-  return (v ?? "").toString();
+  const v = (f as Record<string, unknown>)[key];
+  if (Array.isArray(v)) return String(v[0] ?? "");
+  return v == null ? "" : String(v);
 }
+
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
