@@ -65,6 +65,7 @@ export const Footer = () => {
               © {new Date().getFullYear()} VT Gas & Market. All rights reserved.
             </p>
             <div className="flex gap-6 text-sm text-secondary-foreground/60">
+              <a href="/careers" className="transition-colors hover:text-accent">Careers</a>
               <a href="#" className="transition-colors hover:text-accent">Privacy Policy</a>
               <a href="#" className="transition-colors hover:text-accent">Terms of Service</a>
             </div>
