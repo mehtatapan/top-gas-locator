@@ -3,14 +3,16 @@
 // and sends confirmation + hiring-team notification emails via Resend.
 
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { create, getNumericDate } from "https://deno.land/x/djwt@v3.0.2/mod.ts";
 
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const HIRING_EMAIL = Deno.env.get("HIRING_EMAIL") ?? "vtgmhr@gmail.com";
 const SERVICE_ACCOUNT_JSON = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
-const DRIVE_FOLDER_ID = Deno.env.get("GOOGLE_DRIVE_FOLDER_ID");
 const SHEET_ID = Deno.env.get("GOOGLE_SHEET_ID");
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 interface ServiceAccount {
   client_email: string;
@@ -64,46 +66,23 @@ async function getAccessToken(scopes: string[]): Promise<string> {
   return JSON.parse(text).access_token;
 }
 
-async function uploadResumeToDrive(
-  token: string,
+async function uploadResumeToStorage(
   fileName: string,
   contentType: string,
   bytes: Uint8Array,
-): Promise<{ id: string; webViewLink: string }> {
-  const boundary = "vtgm_" + crypto.randomUUID().replace(/-/g, "");
-  const metadata = {
-    name: fileName,
-    parents: DRIVE_FOLDER_ID ? [DRIVE_FOLDER_ID] : undefined,
-  };
-
-  const encoder = new TextEncoder();
-  const head = encoder.encode(
-    `--${boundary}\r\n` +
-      `Content-Type: application/json; charset=UTF-8\r\n\r\n` +
-      `${JSON.stringify(metadata)}\r\n` +
-      `--${boundary}\r\n` +
-      `Content-Type: ${contentType}\r\n\r\n`,
-  );
-  const tail = encoder.encode(`\r\n--${boundary}--`);
-  const body = new Uint8Array(head.length + bytes.length + tail.length);
-  body.set(head, 0);
-  body.set(bytes, head.length);
-  body.set(tail, head.length + bytes.length);
-
-  const resp = await fetch(
-    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink&supportsAllDrives=true",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": `multipart/related; boundary=${boundary}`,
-      },
-      body,
-    },
-  );
-  const text = await resp.text();
-  if (!resp.ok) throw new Error(`Drive upload ${resp.status}: ${text}`);
-  return JSON.parse(text);
+): Promise<string> {
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const path = `${new Date().getFullYear()}/${fileName}`;
+  const { error: upErr } = await supabase.storage
+    .from("resumes")
+    .upload(path, bytes, { contentType, upsert: false });
+  if (upErr) throw new Error(`Storage upload: ${upErr.message}`);
+  // Signed URL valid for ~10 years
+  const { data, error } = await supabase.storage
+    .from("resumes")
+    .createSignedUrl(path, 60 * 60 * 24 * 3650);
+  if (error || !data?.signedUrl) throw new Error(`Signed URL: ${error?.message}`);
+  return data.signedUrl;
 }
 
 async function appendToSheet(token: string, values: (string | number)[]) {
