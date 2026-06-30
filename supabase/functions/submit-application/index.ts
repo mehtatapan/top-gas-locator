@@ -166,7 +166,6 @@ Deno.serve(async (req) => {
     }
 
     const token = await getAccessToken([
-      "https://www.googleapis.com/auth/drive.file",
       "https://www.googleapis.com/auth/spreadsheets",
     ]);
 
@@ -179,8 +178,7 @@ Deno.serve(async (req) => {
       /[^\w.\-]+/g,
       "_",
     );
-    const drive = await uploadResumeToDrive(
-      token,
+    const resumeLink = await uploadResumeToStorage(
       safeName,
       resumeContentType || "application/octet-stream",
       bytes,
@@ -203,7 +201,7 @@ Deno.serve(async (req) => {
       availabilitySummary ?? "",
       experience ?? "",
       fit ?? "",
-      drive.webViewLink ?? `https://drive.google.com/file/d/${drive.id}/view`,
+      resumeLink,
     ]);
 
     // Applicant confirmation
