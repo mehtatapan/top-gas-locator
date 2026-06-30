@@ -136,7 +136,7 @@ async function sendEmail(to: string, subject: string, html: string) {
       "X-Connection-Api-Key": RESEND_API_KEY,
     },
     body: JSON.stringify({
-      from: "VT Gas & Market Careers <onboarding@resend.dev>",
+      from: "VT Gas & Market Careers <careers@vtgasandmarket.com>",
       to: [to],
       subject,
       html,
