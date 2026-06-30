@@ -1,23 +1,32 @@
 import vtLogo from "@/assets/vt-logo-transparent.png";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 export const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const scrollTo = (id: string) => {
-    const element = document.getElementById(id);
-    element?.scrollIntoView({ behavior: "smooth" });
+  const goToSection = (id: string) => {
     setIsMenuOpen(false);
+    if (location.pathname !== "/") {
+      navigate(`/#${id}`);
+      setTimeout(() => {
+        document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+      }, 80);
+      return;
+    }
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   };
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="container flex h-16 items-center justify-between md:h-20">
-        <a href="/" className="flex items-center gap-3" aria-label="VT Gas & Market Home">
-          <img 
-            src={vtLogo} 
-            alt="VT Gas & Market Logo" 
+        <Link to="/" className="flex items-center gap-3" aria-label="VT Gas & Market Home">
+          <img
+            src={vtLogo}
+            alt="VT Gas & Market Logo"
             className="h-12 w-12 rounded-full md:h-14 md:w-14"
           />
           <div className="hidden sm:block">
@@ -26,40 +35,27 @@ export const Header = () => {
             </span>
             <p className="text-xs text-muted-foreground">Your Hometown Stop</p>
           </div>
-        </a>
+        </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
-          <button 
-            onClick={() => scrollTo("locations")} 
-            className="font-medium text-foreground transition-colors hover:text-primary"
-          >
+          <button onClick={() => goToSection("locations")} className="font-medium text-foreground transition-colors hover:text-primary">
             Locations
           </button>
-          <button 
-            onClick={() => scrollTo("services")} 
-            className="font-medium text-foreground transition-colors hover:text-primary"
-          >
+          <button onClick={() => goToSection("services")} className="font-medium text-foreground transition-colors hover:text-primary">
             Services
           </button>
-          <button 
-            onClick={() => scrollTo("about")} 
-            className="font-medium text-foreground transition-colors hover:text-primary"
-          >
+          <button onClick={() => goToSection("about")} className="font-medium text-foreground transition-colors hover:text-primary">
             About Us
           </button>
-          <button 
-            onClick={() => scrollTo("contact")} 
-            className="rounded-md bg-primary px-5 py-2 font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-          >
+          <Link to="/careers" className="font-medium text-foreground transition-colors hover:text-primary">
+            Careers
+          </Link>
+          <button onClick={() => goToSection("contact")} className="rounded-md bg-primary px-5 py-2 font-semibold text-primary-foreground transition-colors hover:bg-primary/90">
             Contact
           </button>
         </nav>
 
-        <button 
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="p-2 md:hidden"
-          aria-label="Toggle menu"
-        >
+        <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 md:hidden" aria-label="Toggle menu">
           {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
       </div>
@@ -67,28 +63,19 @@ export const Header = () => {
       {isMenuOpen && (
         <nav className="border-t border-border bg-background p-4 md:hidden">
           <div className="flex flex-col gap-4">
-            <button 
-              onClick={() => scrollTo("locations")} 
-              className="py-2 text-left font-medium"
-            >
+            <button onClick={() => goToSection("locations")} className="py-2 text-left font-medium">
               Locations
             </button>
-            <button 
-              onClick={() => scrollTo("services")} 
-              className="py-2 text-left font-medium"
-            >
+            <button onClick={() => goToSection("services")} className="py-2 text-left font-medium">
               Services
             </button>
-            <button 
-              onClick={() => scrollTo("about")} 
-              className="py-2 text-left font-medium"
-            >
+            <button onClick={() => goToSection("about")} className="py-2 text-left font-medium">
               About Us
             </button>
-            <button 
-              onClick={() => scrollTo("contact")} 
-              className="rounded-md bg-primary py-2 font-semibold text-primary-foreground"
-            >
+            <Link to="/careers" onClick={() => setIsMenuOpen(false)} className="py-2 text-left font-medium">
+              Careers
+            </Link>
+            <button onClick={() => goToSection("contact")} className="rounded-md bg-primary py-2 font-semibold text-primary-foreground">
               Contact
             </button>
           </div>
