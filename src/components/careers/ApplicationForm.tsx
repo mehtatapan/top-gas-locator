@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { supabase } from "@/integrations/supabase/client";
+
 
 
 import { positions, storeLocationOptions } from "@/data/positions";
@@ -93,32 +93,20 @@ export const ApplicationForm = ({ defaultPosition }: Props) => {
     setSubmitting(true);
     try {
       const applicationId = `VTGM-${Date.now().toString(36).toUpperCase()}`;
-      // Read resume as base64
-      const resumeBase64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const result = reader.result as string;
-          resolve(result.split(",")[1] ?? "");
-        };
-        reader.onerror = () => reject(reader.error);
-        reader.readAsDataURL(resume);
-      });
 
-      const payload = {
-        applicationId,
-        submittedAt: new Date().toISOString(),
-        ...data,
-        availabilitySummary: serializeAvailability(availability),
-        resumeFileName: resume.name,
-        resumeContentType: resume.type || "application/octet-stream",
-        resumeBase64,
-      };
+      const fd = new FormData();
+      fd.append("applicationId", applicationId);
+      fd.append("submittedAt", new Date().toISOString());
+      Object.entries(data).forEach(([k, v]) => fd.append(k, String(v ?? "")));
+      fd.append("availabilitySummary", serializeAvailability(availability));
+      fd.append("resume", resume, resume.name);
 
-      const { data: result, error } = await supabase.functions.invoke("submit-application", {
-        body: payload,
+      const resp = await fetch("/api/submit-application", {
+        method: "POST",
+        body: fd,
       });
-      if (error) throw error;
-      if (result?.error) throw new Error(result.error);
+      const result = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(result?.error ?? `Request failed (${resp.status})`);
 
       setSubmitted({ applicationId });
       toast.success("Application submitted!");
