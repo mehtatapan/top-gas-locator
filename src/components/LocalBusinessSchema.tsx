@@ -7,7 +7,7 @@ export const LocalBusinessSchema = () => {
     name: "VT Gas & Market",
     description: "VT Gas & Market - Your Hometown Stop. Quality Conoco fuel, convenience store, and friendly service at 5 locations in the Texas Panhandle.",
     url: "https://www.vtgasandmarket.com",
-    logo: "https://www.vtgasandmarket.com/logo.png",
+    logo: "https://www.vtgasandmarket.com/android-chrome-512x512.png",
     sameAs: [],
     department: locations.map((location) => ({
       "@type": ["GasStation", "ConvenienceStore", "LocalBusiness"],
