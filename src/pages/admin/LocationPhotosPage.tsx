@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { ImageIcon, Save } from "lucide-react";
+import { Save } from "lucide-react";
+import ImageUpload from "@/components/admin/ImageUpload";
 
 interface StoreRow {
   id: string;
