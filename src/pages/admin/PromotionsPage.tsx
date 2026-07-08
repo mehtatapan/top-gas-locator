@@ -380,7 +380,7 @@ function PromotionDialog({
               <Input id="ends_at" type="datetime-local" value={form.ends_at} onChange={(e) => update({ ends_at: e.target.value })} />
             </div>
 
-            <div className="col-span-2">
+            <div>
               <Label>Status</Label>
               <Select value={form.status} onValueChange={(v) => update({ status: v as Status })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -388,6 +388,21 @@ function PromotionDialog({
                   {STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="priority">Priority (1 = top)</Label>
+              <Input
+                id="priority"
+                type="number"
+                min={1}
+                placeholder="Leave blank for none"
+                value={form.priority}
+                onChange={(e) => update({ priority: e.target.value })}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Lower numbers appear first. Pin up to ~4 as your top featured promos per store.
+              </p>
             </div>
           </div>
         </div>
