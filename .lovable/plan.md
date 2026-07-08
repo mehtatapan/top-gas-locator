@@ -1,87 +1,186 @@
+# VT Gas & Market — Admin Portal Backend Plan
 
-# Careers Portal + SEO/Branding Fix
-
-A large feature. Splitting into two tracks so we can ship incrementally and confirm a few choices before building the backend.
-
----
-
-## Track A — Frontend Careers Portal
-
-### New route
-`/careers` added to `App.tsx`, linked from `Header` nav and `Footer`.
-
-### Page sections (matching existing red / navy / gold brand, font + animations from `Hero`/`Locations`)
-
-1. **Hero** — "Join Our Team" headline, supportive subtitle, "Apply Now" CTA that scrolls to the form. Same visual treatment as the homepage hero (background, gradient, fade-in).
-2. **Why Work With Us** — 6 animated cards: Competitive Pay, Flexible Scheduling, Career Growth, Friendly Team, Multiple Locations, Training & Development. Icons from `lucide-react`, staggered scroll-in.
-3. **Current Opportunities** — Modular array of positions (Cashier, Assistant Store Manager, Store Manager). Each card: title, short description, employment type badge, "Apply" button that scrolls to the form and pre-selects the role.
-4. **Application Form** — Multi-section card (react-hook-form + zod):
-   - Personal Info (name, email, phone, address, city, state, ZIP)
-   - Employment Info (position dropdown, store location: Fritch / Borger / Spearman / Coulter Amarillo / Western Amarillo, employment type)
-   - **Weekly Availability scheduler** — row per day Mon→Sun with `Available` checkbox, Start/End time pickers (12-hour AM/PM), "Available Anytime" toggle that disables time pickers. Time inputs disabled if not available; validates start < end.
-   - Available Start Date (shadcn datepicker)
-   - Desired Hourly Wage (number)
-   - Relevant Experience (textarea)
-   - Eligibility (US work auth Yes/No, 18+ Yes/No)
-   - Resume upload — drag-and-drop, PDF/DOC/DOCX, ≤10MB, progress bar, filename preview
-   - "Why would you be a good fit?" textarea
-   - Submit with loading state, disabled-while-submitting, success toast + confirmation panel
-5. **SEO** — `react-helmet-async` `<title>`, meta description, canonical, og/twitter tags for `/careers`. JobPosting JSON-LD per open role.
-
-### Components
-- `src/pages/CareersPage.tsx`
-- `src/components/careers/CareersHero.tsx`
-- `src/components/careers/WhyWorkWithUs.tsx`
-- `src/components/careers/OpenPositions.tsx`
-- `src/components/careers/ApplicationForm.tsx`
-- `src/components/careers/AvailabilityScheduler.tsx`
-- `src/components/careers/ResumeDropzone.tsx`
-- `src/data/positions.ts` (modular list)
+Goal: zero-recurring-cost, production-ready backend. Supabase = auth + Postgres + RLS. Google Drive (existing OAuth as `vtgmaudit@gmail.com`) = all binary files. Resend = email. No Supabase Storage.
 
 ---
 
-## Track B — Backend (Google Sheets + Drive + Email)
+## 1. Reuse existing Drive uploader
 
-Requires **Lovable Cloud** (Supabase Edge Functions) for secure server-side credentials. I'll enable it as part of this work.
+Today's `api/submit-application.ts` uses `api/_lib/google.ts` (OAuth2 refresh token → `googleapis` Drive + Sheets). We'll extract that into a shared service and delete the ad-hoc logic from the careers endpoint.
 
-### Edge function `submit-application`
-- Validates payload with zod
-- Generates Application ID + timestamp
-- Uploads resume to Google Drive folder, renames `YYYY-MM-DD_First_Last_Position_Location.ext`, returns shareable link
-- Appends row to Google Sheet with all fields (availability serialized as `Mon 9:00 AM–5:00 PM | Tue Off | ...`)
-- Sends applicant confirmation email + hiring-team notification email
-- Returns `{ applicationId }`
+New shared modules under `api/_lib/`:
+- `google.ts` — unchanged (OAuth2 client, `getDrive()`, `getSheets()`).
+- `drive-uploader.ts` — one canonical upload API:
+  - `ensureFolderPath(pathSegments: string[]): Promise<string>` — walks/creates nested folders under `GOOGLE_DRIVE_ROOT_FOLDER_ID`, caches folder IDs in a new `drive_folders` table so we never re-query Drive for the same path.
+  - `uploadStream({ pathSegments, name, mimeType, stream }): Promise<{ fileId, webViewLink, name, mimeType, size }>`
+  - `makeAnyoneReader(fileId)`, `deleteFile(fileId)`, `replaceFile(fileId, ...)`.
+- `supabase-admin.ts` — server-side Supabase client using service role for audit/log writes from Vercel functions.
+- `auth.ts` — verifies the Supabase JWT on every API request and returns `{ userId, roles, permissions }`.
 
-### Credentials needed (I'll request via secrets tool after you approve)
-- `GOOGLE_SERVICE_ACCOUNT_JSON` — service account with Drive + Sheets access
-- `GOOGLE_DRIVE_FOLDER_ID` — destination resume folder (share folder with the service account email)
-- `GOOGLE_SHEET_ID` — destination spreadsheet (share with the service account email, headers pre-created or auto-created on first run)
-- `HIRING_TEAM_EMAIL` — recipient for notifications
-- Email provider: **Resend** (recommended; needs `RESEND_API_KEY` + verified sender domain, or use `onboarding@resend.dev` for testing)
+New Vercel endpoints (thin wrappers, all auth-gated):
+- `POST /api/uploads` — multipart; body includes `module`, `entityId`, `subPath[]`; returns Drive metadata + inserted `attachments` row.
+- `DELETE /api/uploads/:id`
+- `GET /api/uploads/:id/link` (fresh signed webViewLink if needed)
 
----
-
-## Track C — SEO + Branding Fix
-
-- Replace favicon with VT logo (`public/favicon.png` from `vt-logo-transparent.png`), delete `public/favicon.ico` if present.
-- `index.html`: remove any Lovable defaults; set proper `<title>`, description, canonical, `og:title/description/image/url`, `twitter:card` using VT branding. Use the transparent logo as og:image (1200×630 brand card — I'll generate one).
-- Confirm `LocalBusinessSchema` uses VT logo URL.
-- Add Careers JSON-LD (`JobPosting`) via Helmet on `/careers`.
-- Run SEO scan after deploy.
+Careers endpoint refactored to call `drive-uploader.uploadStream(['Careers', position, storeLocation], …)` — same behavior, no duplicated code.
 
 ---
 
-## Questions before I build Track B
+## 2. Drive folder convention
 
-1. **Email provider** — OK to use **Resend** (Lovable's recommended)? If yes I'll add the connector and you provide the API key + sender domain (or we use the test sender).
-2. **Google credentials** — Do you already have a Google Cloud service account with Drive + Sheets API enabled? If not, I'll give you a 5-step setup guide before requesting the JSON.
-3. **Hiring team email address** — what address should receive notifications?
-4. **OG share image** — OK if I generate a 1200×630 branded image using the VT logo + tagline?
+Root: existing `GOOGLE_DRIVE_FOLDER_ID` becomes `VT Gas & Market/`. Auto-created children:
+
+```text
+VT Gas & Market/
+├── Promotions/{StoreName}/
+├── Tickets/Ticket-{number}/
+├── Gaming/{StoreName}/{Year}/{Period}/
+├── Profit-and-Loss/{Year}/{Month}/
+├── Equipment/{StoreName}/
+├── Maintenance/{StoreName}/{Year}/
+├── Receipts/{Year}/{Month}/
+├── Employees/{EmployeeId}/
+└── Careers/{Position}/{StoreName}/   (existing)
+```
+
+`drive_folders(path text unique, drive_id text)` caches created folder IDs — first upload creates the branch, subsequent uploads hit the cache.
 
 ---
 
-## Build order
-1. Enable Lovable Cloud
-2. Track A (frontend) — fully working with a stub submit that shows success
-3. Track C (SEO/branding fix) + SEO scan
-4. Track B (backend wiring) once you've answered the 4 questions and provided credentials
+## 3. Supabase schema (metadata + business data only)
+
+### Auth & RBAC
+
+```text
+profiles(id=auth.users.id, full_name, phone, avatar_drive_file_id, active)
+roles(id, key unique, name, description)                     -- super_admin, owner, regional_manager, store_manager, employee
+permissions(id, key unique, description)                     -- e.g. tickets.create, gaming.close_period, pnl.edit
+role_permissions(role_id, permission_id)                     -- many-to-many
+user_roles(user_id, role_id, store_id nullable)              -- role optionally scoped to a store
+```
+
+Security-definer helpers (avoid RLS recursion):
+- `has_role(_uid, _role_key) returns bool`
+- `has_permission(_uid, _perm_key) returns bool`
+- `user_store_ids(_uid) returns setof uuid` — stores the user can access (super_admin/owner → all).
+
+### Core
+
+```text
+stores(id, slug unique, name, city, state, address, phone, active, meta jsonb)
+store_managers(store_id, user_id)      -- optional convenience
+
+attachments(                            -- SINGLE table used by every module
+  id, module text, entity_type text, entity_id uuid,
+  drive_file_id text, drive_folder_id text, name, mime_type, size_bytes,
+  web_view_link, uploaded_by=auth.users.id, uploaded_at, deleted_at)
+```
+
+### Tickets (Jira-style)
+
+```text
+ticket_categories(id, key, name)
+tickets(id, number serial, title, description, status enum, priority enum,
+        category_id, store_id, created_by, assignee_id, due_at, closed_at)
+ticket_comments(id, ticket_id, author_id, body, created_at)
+ticket_assignments(id, ticket_id, assignee_id, assigned_by, assigned_at, unassigned_at)
+ticket_history(id, ticket_id, actor_id, field, old_value, new_value, created_at)
+-- attachments via attachments(module='tickets', entity_id=ticket.id)
+```
+
+### Promotions
+
+```text
+promotions(id, store_id, title, description, starts_at, ends_at, status, banner_attachment_id)
+```
+
+### Gaming
+
+```text
+gaming_periods(id, store_id, period_start, period_end, status, opened_by, closed_by)
+gaming_transactions(id, period_id, machine_id, type, amount, occurred_at, notes)
+gaming_manual_payouts(id, period_id, amount, reason, paid_by, paid_at)
+gaming_reports(id, period_id, pdf_attachment_id, generated_at)
+```
+
+### Profit & Loss
+
+```text
+expense_categories(id, key, name, parent_id)
+revenue_categories(id, key, name, parent_id)
+pnl_entries(id, store_id, period_month date, kind enum(expense,revenue),
+            category_id, amount, memo, entry_date)
+-- supporting docs via attachments(module='pnl', entity_id=pnl_entry.id)
+```
+
+### Cross-cutting
+
+```text
+audit_logs(id, actor_id, module, action, entity_type, entity_id,
+           before jsonb, after jsonb, ip, ua, created_at)
+notifications(id, user_id, kind, title, body, link, read_at, created_at)
+email_queue(id, to_email, template, payload jsonb, status, attempts, last_error, send_after, sent_at)
+```
+
+Indexes on every `store_id`, `entity_id`, `created_at`, `status`, `assignee_id`. `pg_trgm` on ticket title/description for search.
+
+### RLS pattern (uniform)
+
+For every table: `ENABLE RLS` + `GRANT SELECT/INSERT/UPDATE/DELETE … TO authenticated` + `GRANT ALL … TO service_role`.
+
+- `super_admin` / `owner`: full access via `has_role`.
+- Store-scoped tables (tickets, promotions, gaming, pnl, attachments with store): `store_id = ANY(user_store_ids(auth.uid()))`.
+- Writes gated by `has_permission(auth.uid(), '<module>.<action>')`.
+- Employees see only their own tickets/assignments unless permission grants more.
+- `audit_logs` insert-only from server (service role); readable by admins.
+
+---
+
+## 4. Auth flow
+
+- Supabase email/password with password reset (`/reset-password` route). Managed Google sign-in **off** by default (owner invites only — no public sign-ups).
+- Super admin bootstrapped via migration + secret email.
+- Session persisted; `onAuthStateChange` in an `AuthProvider`; protected routes check `has_permission` via a `useCan()` hook backed by an RPC that returns the user's permission keys once per session.
+
+---
+
+## 5. Notifications & email
+
+Reuse existing Resend key. `email_queue` populated by DB triggers (ticket assigned/updated/due, gaming period closed, promotion expiring). A single Vercel cron endpoint (`/api/cron/dispatch-emails`, hourly) drains the queue via Resend. Daily digest = same mechanism with a scheduled row.
+
+---
+
+## 6. Audit logging
+
+Generic Postgres trigger `fn_audit()` attached to write-heavy tables — captures `OLD`/`NEW` as jsonb into `audit_logs` with `auth.uid()`. File uploads/deletes logged from the `/api/uploads` endpoint using service role.
+
+---
+
+## 7. Future modules
+
+The `attachments` + `audit_logs` + `stores` + RBAC primitives cover every listed future module (Fuel, Lottery, ATM, Scheduling, Payroll, Vendors, Assets, Maintenance, Compliance). Adding a module = new table(s) + permission keys + RLS using the same helpers. No redesign.
+
+---
+
+## 8. Build order (after you approve)
+
+1. Migration 1: RBAC (roles, permissions, user_roles, helper functions) + `profiles` + trigger.
+2. Migration 2: `stores`, `attachments`, `drive_folders`, `audit_logs`, `notifications`, `email_queue` + RLS + audit trigger.
+3. Migration 3: tickets + promotions + gaming + pnl tables + RLS + seed categories.
+4. Refactor `api/_lib` — extract `drive-uploader.ts`, add `supabase-admin.ts`, `auth.ts`; refactor careers to use it.
+5. New `/api/uploads` endpoint + `useUploader` React hook.
+6. `AuthProvider`, login/reset pages, `useCan`, `RequireAuth`, `RequirePerm`.
+7. Admin shell (sidebar, layout) at `/admin` — module screens land in later PRs one at a time (Tickets first).
+8. Cron endpoint + Vercel `vercel.json` schedule for email dispatch.
+
+---
+
+## Technical notes
+
+- No Supabase Storage anywhere. `attachments.drive_file_id` is the source of truth.
+- Drive OAuth stays server-only in Vercel functions; the browser never sees the refresh token.
+- Every public-schema table gets `GRANT`s + RLS in the same migration (per project rules).
+- Free-tier friendly: no realtime channels enabled unless a screen needs them (tickets board will opt-in).
+- All uploads size-capped at 25 MB per file in the endpoint; Drive quota is 15 GB on the connected account — surface usage in an admin settings page later.
+
+Reply **approve** to start with Migration 1 and the uploader refactor, or tell me what to change.
