@@ -20,6 +20,7 @@ import RolesPage from "./pages/admin/RolesPage";
 import StoresPage from "./pages/admin/StoresPage";
 import TicketsPage from "./pages/admin/TicketsPage";
 import PromotionsPage from "./pages/admin/PromotionsPage";
+import LocationPhotosPage from "./pages/admin/LocationPhotosPage";
 import GamingPage from "./pages/admin/GamingPage";
 import PnLPage from "./pages/admin/PnLPage";
 import AuditPage from "./pages/admin/AuditPage";
@@ -53,6 +54,7 @@ const App = () => (
                 <Route index element={<AdminDashboard />} />
                 <Route path="tickets" element={<RequireAuth permission="tickets.view"><TicketsPage /></RequireAuth>} />
                 <Route path="promotions" element={<RequireAuth permission="promotions.view"><PromotionsPage /></RequireAuth>} />
+                <Route path="location-photos" element={<RequireAuth permission="stores.view"><LocationPhotosPage /></RequireAuth>} />
                 <Route path="gaming" element={<RequireAuth permission="gaming.view"><GamingPage /></RequireAuth>} />
                 <Route path="pnl" element={<RequireAuth permission="pnl.view"><PnLPage /></RequireAuth>} />
                 <Route path="stores" element={<RequireAuth permission="stores.view"><StoresPage /></RequireAuth>} />

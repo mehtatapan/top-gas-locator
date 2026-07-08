@@ -1,18 +1,19 @@
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Ticket, Megaphone, Gamepad2, DollarSign, Users, ShieldAlert, LogOut, Store, Shield } from "lucide-react";
+import { LayoutDashboard, Ticket, Megaphone, Gamepad2, DollarSign, Users, ShieldAlert, LogOut, Store, Shield, Image } from "lucide-react";
 
 const nav = [
-  { to: "/admin",            label: "Dashboard",  icon: LayoutDashboard, perm: null },
-  { to: "/admin/tickets",    label: "Tickets",    icon: Ticket,          perm: "tickets.view" },
-  { to: "/admin/promotions", label: "Promotions", icon: Megaphone,       perm: "promotions.view" },
-  { to: "/admin/gaming",     label: "Gaming",     icon: Gamepad2,        perm: "gaming.view" },
-  { to: "/admin/pnl",        label: "P&L",        icon: DollarSign,      perm: "pnl.view" },
-  { to: "/admin/stores",     label: "Stores",     icon: Store,           perm: "stores.view" },
-  { to: "/admin/users",      label: "Users",      icon: Users,           perm: "users.view" },
-  { to: "/admin/roles",      label: "Roles",      icon: Shield,          perm: "roles.view" },
-  { to: "/admin/audit",      label: "Audit Log",  icon: ShieldAlert,     perm: "admin.audit" },
+  { to: "/admin",                 label: "Dashboard",       icon: LayoutDashboard, perm: null },
+  { to: "/admin/tickets",         label: "Tickets",         icon: Ticket,          perm: "tickets.view" },
+  { to: "/admin/promotions",      label: "Promotions",      icon: Megaphone,       perm: "promotions.view" },
+  { to: "/admin/location-photos", label: "Location Photos", icon: Image,           perm: "stores.view" },
+  { to: "/admin/gaming",          label: "Gaming",          icon: Gamepad2,        perm: "gaming.view" },
+  { to: "/admin/pnl",             label: "P&L",             icon: DollarSign,      perm: "pnl.view" },
+  { to: "/admin/stores",          label: "Stores",          icon: Store,           perm: "stores.view" },
+  { to: "/admin/users",           label: "Users",           icon: Users,           perm: "users.view" },
+  { to: "/admin/roles",           label: "Roles",           icon: Shield,          perm: "roles.view" },
+  { to: "/admin/audit",           label: "Audit Log",       icon: ShieldAlert,     perm: "admin.audit" },
 ];
 
 export default function AdminLayout() {

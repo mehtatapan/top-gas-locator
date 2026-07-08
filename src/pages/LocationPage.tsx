@@ -4,16 +4,17 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { LocationSEO } from "@/components/LocationSEO";
 import { StorePromotions } from "@/components/StorePromotions";
+import { useLocationStore, usePublicPromotions } from "@/hooks/useLocationStore";
 import { MapPin, Phone, Clock, Navigation, Utensils, ArrowLeft, Fuel, Coffee, CreditCard } from "lucide-react";
 
-// Stock images for store photos (to be replaced with real photos later)
-const storeImages = [
-  "https://images.unsplash.com/photo-1567954970774-58d6aa6c50dc?w=800&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1527018601619-a508a2be00cd?w=800&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&auto=format&fit=crop",
-];
+// Fallback stock images if a store has no custom photos configured yet.
+const fallbackImages = {
+  hero: "https://images.unsplash.com/photo-1567954970774-58d6aa6c50dc?w=800&auto=format&fit=crop",
+  interior: "https://images.unsplash.com/photo-1527018601619-a508a2be00cd?w=800&auto=format&fit=crop",
+  products: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&auto=format&fit=crop",
+};
 
-const promotions = [
+const offerings = [
   {
     title: "Fresh Coffee Daily",
     description: "Start your day with our freshly brewed coffee. Multiple flavors available!",
@@ -34,6 +35,13 @@ const promotions = [
 const LocationPage = () => {
   const { locationId } = useParams<{ locationId: string }>();
   const location = locations.find((loc) => loc.id === locationId);
+  const storeQ = useLocationStore(locationId);
+  const promosQ = usePublicPromotions(storeQ.data?.id);
+
+  const photos = storeQ.data?.meta?.photos ?? {};
+  const heroImg = photos.hero || fallbackImages.hero;
+  const interiorImg = photos.interior || fallbackImages.interior;
+  const productsImg = photos.products || fallbackImages.products;
 
   if (!location) {
     return (
@@ -162,7 +170,7 @@ const LocationPage = () => {
                 <div className="grid gap-4">
                   <div className="overflow-hidden rounded-lg">
                     <img
-                      src={storeImages[0]}
+                      src={heroImg}
                       alt={`${location.name} exterior`}
                       className="h-64 w-full object-cover transition-transform duration-300 hover:scale-105"
                     />
@@ -170,14 +178,14 @@ const LocationPage = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="overflow-hidden rounded-lg">
                       <img
-                        src={storeImages[1]}
+                        src={interiorImg}
                         alt={`${location.name} interior`}
                         className="h-40 w-full object-cover transition-transform duration-300 hover:scale-105"
                       />
                     </div>
                     <div className="overflow-hidden rounded-lg">
                       <img
-                        src={storeImages[2]}
+                        src={productsImg}
                         alt={`${location.name} products`}
                         className="h-40 w-full object-cover transition-transform duration-300 hover:scale-105"
                       />
@@ -196,7 +204,7 @@ const LocationPage = () => {
               What We Offer
             </h2>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {promotions.map((promo, index) => (
+              {offerings.map((promo, index) => (
                 <div
                   key={index}
                   className="rounded-lg bg-[hsl(var(--card-elevated))] p-6 card-shadow transition-all duration-300 hover:-translate-y-1 hover:elevated-shadow"
@@ -215,7 +223,11 @@ const LocationPage = () => {
         </section>
 
         {/* Store Promotions */}
-        <StorePromotions locationName={location.name} />
+        <StorePromotions
+          locationName={location.name}
+          promotions={promosQ.data ?? []}
+          loading={promosQ.isLoading}
+        />
 
         {/* Directions */}
         <section className="py-16">
