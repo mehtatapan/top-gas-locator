@@ -17,6 +17,7 @@ import ResetPasswordPage from "./pages/admin/ResetPasswordPage";
 import ComingSoon from "./pages/admin/ComingSoon";
 import UsersPage from "./pages/admin/UsersPage";
 import RolesPage from "./pages/admin/RolesPage";
+import StoresPage from "./pages/admin/StoresPage";
 
 const queryClient = new QueryClient();
 
@@ -49,7 +50,7 @@ const App = () => (
                 <Route path="promotions" element={<RequireAuth permission="promotions.view"><ComingSoon title="Promotions" /></RequireAuth>} />
                 <Route path="gaming" element={<RequireAuth permission="gaming.view"><ComingSoon title="Gaming" /></RequireAuth>} />
                 <Route path="pnl" element={<RequireAuth permission="pnl.view"><ComingSoon title="Profit & Loss" /></RequireAuth>} />
-                <Route path="stores" element={<RequireAuth permission="stores.view"><ComingSoon title="Stores" /></RequireAuth>} />
+                <Route path="stores" element={<RequireAuth permission="stores.view"><StoresPage /></RequireAuth>} />
                 <Route path="users" element={<RequireAuth permission="users.view"><UsersPage /></RequireAuth>} />
                 <Route path="roles" element={<RequireAuth permission="roles.view"><RolesPage /></RequireAuth>} />
                 <Route path="audit" element={<RequireAuth permission="admin.audit"><ComingSoon title="Audit Log" /></RequireAuth>} />
