@@ -1,0 +1,1 @@
+ALTER TABLE public.promotions ADD COLUMN IF NOT EXISTS priority INTEGER; CREATE INDEX IF NOT EXISTS idx_promotions_priority ON public.promotions(priority NULLS LAST);

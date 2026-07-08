@@ -22,6 +22,7 @@ export interface PublicPromotion {
   image_url: string | null;
   starts_at: string | null;
   ends_at: string | null;
+  priority: number | null;
 }
 
 /** Fetch the store row for a public location slug (matches locations[].id). */
@@ -49,11 +50,12 @@ export function usePublicPromotions(storeId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("promotions")
-        .select("id, store_id, title, description, image_url, starts_at, ends_at")
+        .select("id, store_id, title, description, image_url, starts_at, ends_at, priority")
         .or(`store_id.eq.${storeId},store_id.is.null`)
+        .order("priority", { ascending: true, nullsFirst: false })
         .order("starts_at", { ascending: false, nullsFirst: false });
       if (error) throw error;
-      return (data ?? []) as PublicPromotion[];
+      return (data ?? []) as unknown as PublicPromotion[];
     },
   });
 }

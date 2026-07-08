@@ -27,6 +27,7 @@ interface Promotion {
   starts_at: string | null;
   ends_at: string | null;
   status: Status;
+  priority: number | null;
   created_at: string;
   updated_at: string;
   stores?: { id: string; name: string } | null;
@@ -43,10 +44,11 @@ type Draft = {
   starts_at: string; // datetime-local
   ends_at: string;
   status: Status;
+  priority: string; // keep as string for input
 };
 
 const EMPTY: Draft = {
-  store_id: null, title: "", description: "", image_url: "", starts_at: "", ends_at: "", status: "draft",
+  store_id: null, title: "", description: "", image_url: "", starts_at: "", ends_at: "", status: "draft", priority: "",
 };
 
 const STATUSES: Status[] = ["draft", "scheduled", "active", "archived"];
@@ -95,7 +97,8 @@ export default function PromotionsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("promotions")
-        .select("id, store_id, title, description, image_url, starts_at, ends_at, status, created_at, updated_at, stores(id, name)")
+        .select("id, store_id, title, description, image_url, starts_at, ends_at, status, priority, created_at, updated_at, stores(id, name)")
+        .order("priority", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as unknown as Promotion[];
@@ -181,19 +184,20 @@ export default function PromotionsPage() {
               <TableHead>Starts</TableHead>
               <TableHead>Ends</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="w-24">Priority</TableHead>
               <TableHead className="w-32 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {promosQ.isLoading && (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Loading…</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Loading…</TableCell></TableRow>
             )}
             {promosQ.error && (
-              <TableRow><TableCell colSpan={6} className="text-center text-destructive">{(promosQ.error as Error).message}</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center text-destructive">{(promosQ.error as Error).message}</TableCell></TableRow>
             )}
             {!promosQ.isLoading && filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="py-10 text-center">
+                <TableCell colSpan={7} className="py-10 text-center">
                   <Megaphone className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">No promotions found.</p>
                 </TableCell>
@@ -215,6 +219,9 @@ export default function PromotionsPage() {
                 <TableCell>
                   <Badge variant={statusVariant(p.status)}>{p.status}</Badge>
                 </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {p.priority == null ? <span className="italic">—</span> : p.priority}
+                </TableCell>
                 <TableCell className="text-right space-x-1">
                   {canManage && (
                     <>
@@ -227,6 +234,7 @@ export default function PromotionsPage() {
                         starts_at: toLocalInput(p.starts_at),
                         ends_at: toLocalInput(p.ends_at),
                         status: p.status,
+                        priority: p.priority == null ? "" : String(p.priority),
                       })}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
@@ -281,6 +289,12 @@ function PromotionDialog({
       if (form.starts_at && form.ends_at && new Date(form.ends_at) <= new Date(form.starts_at)) {
         throw new Error("End time must be after start time");
       }
+      let priorityNum: number | null = null;
+      if (form.priority.trim() !== "") {
+        const n = Number(form.priority);
+        if (!Number.isInteger(n) || n < 1) throw new Error("Priority must be a positive whole number (1 = top).");
+        priorityNum = n;
+      }
 
       const payload = {
         store_id: form.store_id,
@@ -290,6 +304,7 @@ function PromotionDialog({
         starts_at: fromLocalInput(form.starts_at),
         ends_at: fromLocalInput(form.ends_at),
         status: form.status,
+        priority: priorityNum,
       };
 
       if (isEdit && form.id) {
@@ -365,7 +380,7 @@ function PromotionDialog({
               <Input id="ends_at" type="datetime-local" value={form.ends_at} onChange={(e) => update({ ends_at: e.target.value })} />
             </div>
 
-            <div className="col-span-2">
+            <div>
               <Label>Status</Label>
               <Select value={form.status} onValueChange={(v) => update({ status: v as Status })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -373,6 +388,21 @@ function PromotionDialog({
                   {STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="priority">Priority (1 = top)</Label>
+              <Input
+                id="priority"
+                type="number"
+                min={1}
+                placeholder="Leave blank for none"
+                value={form.priority}
+                onChange={(e) => update({ priority: e.target.value })}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Lower numbers appear first. Pin up to ~4 as your top featured promos per store.
+              </p>
             </div>
           </div>
         </div>
