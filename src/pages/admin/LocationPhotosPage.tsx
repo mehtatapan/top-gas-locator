@@ -148,18 +148,24 @@ function StoreCard({
           value={photos.hero}
           onChange={(v) => update({ hero: v })}
           disabled={!canManage}
+          storeSlug={store.slug}
+          slot="hero"
         />
         <PhotoField
           label="Interior"
           value={photos.interior}
           onChange={(v) => update({ interior: v })}
           disabled={!canManage}
+          storeSlug={store.slug}
+          slot="interior"
         />
         <PhotoField
           label="Products"
           value={photos.products}
           onChange={(v) => update({ products: v })}
           disabled={!canManage}
+          storeSlug={store.slug}
+          slot="products"
         />
       </div>
     </div>
@@ -171,35 +177,27 @@ function PhotoField({
   value,
   onChange,
   disabled,
+  storeSlug,
+  slot,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   disabled: boolean;
+  storeSlug: string;
+  slot: string;
 }) {
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
-      <div className="flex h-32 w-full items-center justify-center overflow-hidden rounded-md border bg-muted">
-        {value ? (
-          <img
-            src={value}
-            alt={label}
-            className="h-full w-full object-cover"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.opacity = "0.2";
-            }}
-          />
-        ) : (
-          <ImageIcon className="h-8 w-8 text-muted-foreground" />
-        )}
-      </div>
-      <Input
+      <ImageUpload
         value={value}
-        placeholder="https://…/photo.jpg"
-        onChange={(e) => onChange(e.target.value)}
+        onChange={onChange}
         disabled={disabled}
+        module="location-photos"
+        subPath={`${storeSlug}/${slot}`}
       />
     </div>
   );
 }
+
