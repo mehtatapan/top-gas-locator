@@ -1,5 +1,5 @@
 import type { VercelRequest } from "@vercel/node";
-import { getServiceSupabase } from "./supabase-admin.js";
+import { getServiceSupabase, getUserSupabase } from "./supabase-admin.js";
 
 export interface AuthedUser {
   id: string;
@@ -21,7 +21,8 @@ export async function requireUser(req: VercelRequest): Promise<AuthedUser> {
   const { data, error } = await sb.auth.getUser(token);
   if (error || !data.user) throw Object.assign(new Error("Invalid token"), { status: 401 });
 
-  const { data: perms } = await sb.rpc("my_permissions");
+  const userSb = getUserSupabase(token);
+  const { data: perms } = await userSb.rpc("my_permissions");
   const permissionKeys = ((perms ?? []) as { permission_key: string }[]).map((r) => r.permission_key);
 
   return {
