@@ -1,186 +1,166 @@
-# VT Gas & Market — Admin Portal Backend Plan
 
-Goal: zero-recurring-cost, production-ready backend. Supabase = auth + Postgres + RLS. Google Drive (existing OAuth as `vtgmaudit@gmail.com`) = all binary files. Resend = email. No Supabase Storage.
+# Migration Prep: Lovable Cloud → Standalone Supabase + Vercel + Google Drive
 
----
-
-## 1. Reuse existing Drive uploader
-
-Today's `api/submit-application.ts` uses `api/_lib/google.ts` (OAuth2 refresh token → `googleapis` Drive + Sheets). We'll extract that into a shared service and delete the ad-hoc logic from the careers endpoint.
-
-New shared modules under `api/_lib/`:
-- `google.ts` — unchanged (OAuth2 client, `getDrive()`, `getSheets()`).
-- `drive-uploader.ts` — one canonical upload API:
-  - `ensureFolderPath(pathSegments: string[]): Promise<string>` — walks/creates nested folders under `GOOGLE_DRIVE_ROOT_FOLDER_ID`, caches folder IDs in a new `drive_folders` table so we never re-query Drive for the same path.
-  - `uploadStream({ pathSegments, name, mimeType, stream }): Promise<{ fileId, webViewLink, name, mimeType, size }>`
-  - `makeAnyoneReader(fileId)`, `deleteFile(fileId)`, `replaceFile(fileId, ...)`.
-- `supabase-admin.ts` — server-side Supabase client using service role for audit/log writes from Vercel functions.
-- `auth.ts` — verifies the Supabase JWT on every API request and returns `{ userId, roles, permissions }`.
-
-New Vercel endpoints (thin wrappers, all auth-gated):
-- `POST /api/uploads` — multipart; body includes `module`, `entityId`, `subPath[]`; returns Drive metadata + inserted `attachments` row.
-- `DELETE /api/uploads/:id`
-- `GET /api/uploads/:id/link` (fresh signed webViewLink if needed)
-
-Careers endpoint refactored to call `drive-uploader.uploadStream(['Careers', position, storeLocation], …)` — same behavior, no duplicated code.
+Goal: remove infra dependency on Lovable Cloud without changing product behavior. No new features, no auth model changes. All work is portability + one small refactor of image columns to go through `attachments`.
 
 ---
 
-## 2. Drive folder convention
+## 1. Consolidated migration package (`migrations-standalone/`)
 
-Root: existing `GOOGLE_DRIVE_FOLDER_ID` becomes `VT Gas & Market/`. Auto-created children:
+Create a fresh, ordered SQL bundle a new Supabase project can replay end-to-end. Existing `supabase/migrations/*` stay untouched (they're the historical Lovable Cloud record); the new folder is the clean deploy artifact.
+
+Files (run in order):
 
 ```text
-VT Gas & Market/
-├── Promotions/{StoreName}/
-├── Tickets/Ticket-{number}/
-├── Gaming/{StoreName}/{Year}/{Period}/
-├── Profit-and-Loss/{Year}/{Month}/
-├── Equipment/{StoreName}/
-├── Maintenance/{StoreName}/{Year}/
-├── Receipts/{Year}/{Month}/
-├── Employees/{EmployeeId}/
-└── Careers/{Position}/{StoreName}/   (existing)
+migrations-standalone/
+  00_extensions.sql          -- pgcrypto, uuid-ossp
+  01_schema_core.sql         -- stores, store_managers, profiles, roles, permissions,
+                                role_permissions, user_roles, audit_logs
+  02_schema_documents.sql    -- attachments, drive_folders
+  03_schema_business.sql     -- promotions, employees, tickets, compliance_*,
+                                fuel_*, gaming_*, lottery_*, atm_*, pnl_*,
+                                vendors, vendor_contracts, equipment, maintenance_*,
+                                payroll_*, shifts, time_entries, notifications,
+                                email_queue, report_definitions, report_snapshots,
+                                categories, expense_categories, revenue_categories,
+                                ticket_categories, ticket_comments, ticket_history,
+                                ticket_assignments
+  04_functions.sql           -- set_updated_at, has_role, has_permission, is_admin,
+                                can_access_store, user_store_ids, my_permissions,
+                                fn_audit, fn_log_ticket_changes,
+                                handle_new_user, bootstrap_first_admin
+  05_triggers.sql            -- updated_at triggers, audit triggers,
+                                auth.users → handle_new_user + bootstrap_first_admin
+  06_rls_policies.sql        -- every policy currently in the DB
+  07_grants.sql              -- GRANT SELECT/INSERT/UPDATE/DELETE per role
+  08_seed_rbac.sql           -- roles (super_admin, owner, regional_manager,
+                                store_manager, employee), permissions catalog,
+                                role_permissions mapping
+  09_seed_reference.sql      -- stores, ticket_categories, expense/revenue
+                                categories, fuel_products, lottery_games
+  README.md                  -- run order + psql one-liner
 ```
 
-`drive_folders(path text unique, drive_id text)` caches created folder IDs — first upload creates the branch, subsequent uploads hit the cache.
+Portability audit already done — nothing Cloud-specific:
+- No `vault`, `pg_net`, `pg_cron`, or Cloud extensions
+- All helper functions use only `auth.uid()` + standard plpgsql
+- No Supabase Edge Functions exist (`supabase/functions/` is empty)
 
 ---
 
-## 3. Supabase schema (metadata + business data only)
+## 2. Supabase Storage cleanup
 
-### Auth & RBAC
+Confirmed zero code references (`rg supabase.storage` returns nothing). Deliverables:
 
-```text
-profiles(id=auth.users.id, full_name, phone, avatar_drive_file_id, active)
-roles(id, key unique, name, description)                     -- super_admin, owner, regional_manager, store_manager, employee
-permissions(id, key unique, description)                     -- e.g. tickets.create, gaming.close_period, pnl.edit
-role_permissions(role_id, permission_id)                     -- many-to-many
-user_roles(user_id, role_id, store_id nullable)              -- role optionally scoped to a store
-```
-
-Security-definer helpers (avoid RLS recursion):
-- `has_role(_uid, _role_key) returns bool`
-- `has_permission(_uid, _perm_key) returns bool`
-- `user_store_ids(_uid) returns setof uuid` — stores the user can access (super_admin/owner → all).
-
-### Core
-
-```text
-stores(id, slug unique, name, city, state, address, phone, active, meta jsonb)
-store_managers(store_id, user_id)      -- optional convenience
-
-attachments(                            -- SINGLE table used by every module
-  id, module text, entity_type text, entity_id uuid,
-  drive_file_id text, drive_folder_id text, name, mime_type, size_bytes,
-  web_view_link, uploaded_by=auth.users.id, uploaded_at, deleted_at)
-```
-
-### Tickets (Jira-style)
-
-```text
-ticket_categories(id, key, name)
-tickets(id, number serial, title, description, status enum, priority enum,
-        category_id, store_id, created_by, assignee_id, due_at, closed_at)
-ticket_comments(id, ticket_id, author_id, body, created_at)
-ticket_assignments(id, ticket_id, assignee_id, assigned_by, assigned_at, unassigned_at)
-ticket_history(id, ticket_id, actor_id, field, old_value, new_value, created_at)
--- attachments via attachments(module='tickets', entity_id=ticket.id)
-```
-
-### Promotions
-
-```text
-promotions(id, store_id, title, description, starts_at, ends_at, status, banner_attachment_id)
-```
-
-### Gaming
-
-```text
-gaming_periods(id, store_id, period_start, period_end, status, opened_by, closed_by)
-gaming_transactions(id, period_id, machine_id, type, amount, occurred_at, notes)
-gaming_manual_payouts(id, period_id, amount, reason, paid_by, paid_at)
-gaming_reports(id, period_id, pdf_attachment_id, generated_at)
-```
-
-### Profit & Loss
-
-```text
-expense_categories(id, key, name, parent_id)
-revenue_categories(id, key, name, parent_id)
-pnl_entries(id, store_id, period_month date, kind enum(expense,revenue),
-            category_id, amount, memo, entry_date)
--- supporting docs via attachments(module='pnl', entity_id=pnl_entry.id)
-```
-
-### Cross-cutting
-
-```text
-audit_logs(id, actor_id, module, action, entity_type, entity_id,
-           before jsonb, after jsonb, ip, ua, created_at)
-notifications(id, user_id, kind, title, body, link, read_at, created_at)
-email_queue(id, to_email, template, payload jsonb, status, attempts, last_error, send_after, sent_at)
-```
-
-Indexes on every `store_id`, `entity_id`, `created_at`, `status`, `assignee_id`. `pg_trgm` on ticket title/description for search.
-
-### RLS pattern (uniform)
-
-For every table: `ENABLE RLS` + `GRANT SELECT/INSERT/UPDATE/DELETE … TO authenticated` + `GRANT ALL … TO service_role`.
-
-- `super_admin` / `owner`: full access via `has_role`.
-- Store-scoped tables (tickets, promotions, gaming, pnl, attachments with store): `store_id = ANY(user_store_ids(auth.uid()))`.
-- Writes gated by `has_permission(auth.uid(), '<module>.<action>')`.
-- Employees see only their own tickets/assignments unless permission grants more.
-- `audit_logs` insert-only from server (service role); readable by admins.
+- `migrations-standalone/99_cleanup_storage.sql` — `delete from storage.buckets where id in ('resumes','promotion-images','location-photos');` (documented, run manually on the new project only if the buckets exist)
+- Note in README: **do not create Supabase Storage buckets** on the new project
+- Add ESLint rule / doc guard: any future `supabase.storage.*` call is a review blocker
 
 ---
 
-## 4. Auth flow
+## 3. Refactor image columns to reference `attachments`
 
-- Supabase email/password with password reset (`/reset-password` route). Managed Google sign-in **off** by default (owner invites only — no public sign-ups).
-- Super admin bootstrapped via migration + secret email.
-- Session persisted; `onAuthStateChange` in an `AuthProvider`; protected routes check `has_permission` via a `useCan()` hook backed by an RPC that returns the user's permission keys once per session.
+Schema change (small, additive, no data loss for a fresh install; migration script for existing rows included):
 
----
+```text
+promotions
+  + image_attachment_id uuid references attachments(id) on delete set null
+  - image_url  (kept temporarily as fallback, dropped in a later migration)
 
-## 5. Notifications & email
+stores
+  + hero_photo_attachment_id uuid references attachments(id)
+  + gallery_attachment_ids uuid[]  (or a stores_photos join table if slot-based)
+  - existing photo_* url columns  (kept temporarily)
+```
 
-Reuse existing Resend key. `email_queue` populated by DB triggers (ticket assigned/updated/due, gaming period closed, promotion expiring). A single Vercel cron endpoint (`/api/cron/dispatch-emails`, hourly) drains the queue via Resend. Daily digest = same mechanism with a scheduled row.
+Backfill script for any rows already holding a `drive.google.com/thumbnail?id=<ID>` URL:
+1. Parse `<ID>` from `image_url`
+2. Upsert into `attachments` (`module='promotions'`, `drive_file_id=<ID>`, `web_view_link` reconstructed)
+3. Set `image_attachment_id` to new row
 
----
-
-## 6. Audit logging
-
-Generic Postgres trigger `fn_audit()` attached to write-heavy tables — captures `OLD`/`NEW` as jsonb into `audit_logs` with `auth.uid()`. File uploads/deletes logged from the `/api/uploads` endpoint using service role.
-
----
-
-## 7. Future modules
-
-The `attachments` + `audit_logs` + `stores` + RBAC primitives cover every listed future module (Fuel, Lottery, ATM, Scheduling, Payroll, Vendors, Assets, Maintenance, Compliance). Adding a module = new table(s) + permission keys + RLS using the same helpers. No redesign.
-
----
-
-## 8. Build order (after you approve)
-
-1. Migration 1: RBAC (roles, permissions, user_roles, helper functions) + `profiles` + trigger.
-2. Migration 2: `stores`, `attachments`, `drive_folders`, `audit_logs`, `notifications`, `email_queue` + RLS + audit trigger.
-3. Migration 3: tickets + promotions + gaming + pnl tables + RLS + seed categories.
-4. Refactor `api/_lib` — extract `drive-uploader.ts`, add `supabase-admin.ts`, `auth.ts`; refactor careers to use it.
-5. New `/api/uploads` endpoint + `useUploader` React hook.
-6. `AuthProvider`, login/reset pages, `useCan`, `RequireAuth`, `RequirePerm`.
-7. Admin shell (sidebar, layout) at `/admin` — module screens land in later PRs one at a time (Tickets first).
-8. Cron endpoint + Vercel `vercel.json` schedule for email dispatch.
+Code changes:
+- `ImageUpload` component: accept `attachmentId` + `onAttachmentChange(id, url)` instead of raw url. Server already returns the full `attachments` row from `/api/uploads`.
+- `PromotionsPage` and `LocationPhotosPage`: store `image_attachment_id` instead of the URL
+- Read side (`StorePromotions`, `LocationPage`): join `attachments` and build the Drive thumbnail URL client-side from `drive_file_id`
+- Add a small helper `driveThumbUrl(fileId, w=2000)` in `src/lib/drive.ts`
 
 ---
 
-## Technical notes
+## 4. Environment variable rename + cleanup
 
-- No Supabase Storage anywhere. `attachments.drive_file_id` is the source of truth.
-- Drive OAuth stays server-only in Vercel functions; the browser never sees the refresh token.
-- Every public-schema table gets `GRANT`s + RLS in the same migration (per project rules).
-- Free-tier friendly: no realtime channels enabled unless a screen needs them (tickets board will opt-in).
-- All uploads size-capped at 25 MB per file in the endpoint; Drive quota is 15 GB on the connected account — surface usage in an admin settings page later.
+**Frontend `.env`:**
+```
+VITE_SUPABASE_URL
+VITE_SUPABASE_PUBLISHABLE_KEY
+VITE_SUPABASE_PROJECT_ID
+VITE_GOOGLE_MAPS_BROWSER_KEY        # renamed from VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY
+VITE_GOOGLE_MAPS_TRACKING_ID        # renamed (optional)
+```
 
-Reply **approve** to start with Migration 1 and the uploader refactor, or tell me what to change.
+**Vercel functions:**
+```
+SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY, SUPABASE_JWKS
+GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET, GOOGLE_OAUTH_REFRESH_TOKEN
+GOOGLE_DRIVE_FOLDER_ID, GOOGLE_SHEET_ID
+RESEND_API_KEY, HIRING_EMAIL
+```
+
+Removed: `LOVABLE_API_KEY`, `GOOGLE_SERVICE_ACCOUNT_JSON` (unused), all `VITE_LOVABLE_CONNECTOR_*`.
+
+Code touch points for the rename: `src/components/LocationsMap.tsx` and any other file reading the old maps var — update to `import.meta.env.VITE_GOOGLE_MAPS_BROWSER_KEY` with a fallback to the old name for one release cycle.
+
+Deliverable: updated `.env.example` at project root listing exactly the vars above.
+
+---
+
+## 5. Auth migration guide (`docs/AUTH_MIGRATION.md`)
+
+No code changes — pure runbook.
+
+Steps:
+1. Provision new Supabase project, run `migrations-standalone/00–08` (skip `handle_new_user` + `bootstrap_first_admin` triggers until after import).
+2. Export from current Supabase: `GET /auth/v1/admin/users` (paginated). Save JSON.
+3. Import to new project: `POST /auth/v1/admin/users` with `id`, `email`, `email_confirmed_at`, and `password_hash` preserved — users keep their passwords.
+4. Restore triggers on `auth.users`.
+5. Copy `public.profiles`, `public.user_roles`, `public.store_managers`, `public.attachments`, `public.audit_logs`, etc. via `pg_dump --data-only --table=public.<t>` piped to the new DB. UUIDs preserved → all FKs resolve.
+6. Fetch new `SUPABASE_JWKS` URL and update Vercel env.
+7. Swap `VITE_SUPABASE_*` on Vercel, redeploy, smoke test login + upload.
+
+Rollback: keep old Lovable Cloud project running until smoke tests pass; DNS/env swap is the cutover.
+
+---
+
+## 6. Docs to ship
+
+- `docs/MIGRATION_READINESS.md` — the audit summary already produced
+- `docs/GOOGLE_DRIVE_ARCHITECTURE.md` — folder layout, `attachments` contract, `/api/uploads` API, adding a new module (3-step recipe)
+- `docs/SUPABASE_MIGRATION_CHECKLIST.md` — ordered checklist wrapping sections 1, 2, 4, 5 above
+- `docs/ENV_VARS.md` — full var table with source, consumer, and whether it's client or server
+
+---
+
+## Technical details
+
+**Files changed:**
+- New: `migrations-standalone/*.sql`, `docs/*.md`, updated `.env.example`, `src/lib/drive.ts`
+- Edited: `src/components/admin/ImageUpload.tsx` (attachment-first API, url still supported), `src/pages/admin/PromotionsPage.tsx`, `src/pages/admin/LocationPhotosPage.tsx`, `src/components/StorePromotions.tsx`, `src/pages/LocationPage.tsx`, `src/components/LocationsMap.tsx` (env var rename with fallback)
+
+**Migrations run against current Lovable Cloud DB (via `supabase--migration`):**
+- Add `image_attachment_id` / photo attachment FKs on `promotions` and `stores` (nullable, non-breaking)
+- Backfill script for existing rows
+
+**Explicitly NOT doing:**
+- Changing auth flow, RBAC model, or any business logic
+- Introducing new modules
+- Touching `supabase/functions/` (empty)
+- Deleting the old `image_url` columns yet — kept for one release as a safety net
+
+---
+
+## Order of execution once approved
+
+1. Migration bundle + docs (no runtime impact)
+2. Env var rename with backward-compatible fallback
+3. Additive schema migration (`image_attachment_id` etc.) + backfill
+4. Refactor `ImageUpload` + read sites to use attachment IDs
+5. After a stable release: drop legacy `image_url` columns in a follow-up migration
