@@ -22,6 +22,7 @@ interface Promotion {
   store_id: string | null;
   title: string;
   description: string | null;
+  image_url: string | null;
   starts_at: string | null;
   ends_at: string | null;
   status: Status;
@@ -37,13 +38,14 @@ type Draft = {
   store_id: string | null;
   title: string;
   description: string;
+  image_url: string;
   starts_at: string; // datetime-local
   ends_at: string;
   status: Status;
 };
 
 const EMPTY: Draft = {
-  store_id: null, title: "", description: "", starts_at: "", ends_at: "", status: "draft",
+  store_id: null, title: "", description: "", image_url: "", starts_at: "", ends_at: "", status: "draft",
 };
 
 const STATUSES: Status[] = ["draft", "scheduled", "active", "archived"];
@@ -92,7 +94,7 @@ export default function PromotionsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("promotions")
-        .select("id, store_id, title, description, starts_at, ends_at, status, created_at, updated_at, stores(id, name)")
+        .select("id, store_id, title, description, image_url, starts_at, ends_at, status, created_at, updated_at, stores(id, name)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as unknown as Promotion[];
@@ -220,6 +222,7 @@ export default function PromotionsPage() {
                         store_id: p.store_id,
                         title: p.title,
                         description: p.description ?? "",
+                        image_url: p.image_url ?? "",
                         starts_at: toLocalInput(p.starts_at),
                         ends_at: toLocalInput(p.ends_at),
                         status: p.status,
