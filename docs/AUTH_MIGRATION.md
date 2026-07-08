@@ -19,11 +19,11 @@ psql "$NEW_DB_URL" -v ON_ERROR_STOP=1 -f migrations-standalone/01_full_schema.sq
 Then **temporarily disable** the two `auth.users` triggers so the user import doesn't try to create profile rows twice:
 
 ```sql
-ALTER TABLE auth.users DISABLE TRIGGER on_auth_user_created;      -- handle_new_user
-ALTER TABLE auth.users DISABLE TRIGGER on_auth_user_bootstrap;    -- bootstrap_first_admin
+ALTER TABLE auth.users DISABLE TRIGGER on_auth_user_created;             -- handle_new_user
+ALTER TABLE auth.users DISABLE TRIGGER on_auth_user_created_bootstrap;   -- bootstrap_first_admin
 ```
 
-(Trigger names may differ — check `\dS auth.users` and adjust.)
+(Verified against `01_full_schema.sql`.)
 
 ## Step 2 — Export users from the old project
 
@@ -94,7 +94,7 @@ If a table has `handle_new_user`-created rows already (from step 3's user insert
 
 ```sql
 ALTER TABLE auth.users ENABLE TRIGGER on_auth_user_created;
-ALTER TABLE auth.users ENABLE TRIGGER on_auth_user_bootstrap;
+ALTER TABLE auth.users ENABLE TRIGGER on_auth_user_created_bootstrap;
 ```
 
 ## Step 6 — Update Vercel env vars
