@@ -51,15 +51,26 @@ export default function AuditPage() {
     queryFn: async () => {
       let query = supabase
         .from("audit_logs")
-        .select(`id, actor_id, module, action, entity_type, entity_id, before, after, ip, user_agent, created_at,
-                 profiles:actor_id ( id, full_name )`, { count: "exact" })
+        .select(`id, actor_id, module, action, entity_type, entity_id, before, after, ip, user_agent, created_at`,
+          { count: "exact" })
         .order("created_at", { ascending: false })
         .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
       if (module !== "all") query = query.eq("module", module);
       if (action !== "all") query = query.eq("action", action);
       const { data, error, count } = await query;
       if (error) throw error;
-      return { rows: (data ?? []) as unknown as AuditRow[], count: count ?? 0 };
+
+      const actorIds = Array.from(new Set((data ?? []).map((r) => r.actor_id).filter(Boolean))) as string[];
+      let profileMap = new Map<string, { id: string; full_name: string | null }>();
+      if (actorIds.length) {
+        const { data: profs } = await supabase.from("profiles").select("id, full_name").in("id", actorIds);
+        profileMap = new Map((profs ?? []).map((p) => [p.id, p]));
+      }
+      const rows = (data ?? []).map((r) => ({
+        ...r,
+        profiles: r.actor_id ? profileMap.get(r.actor_id) ?? null : null,
+      })) as unknown as AuditRow[];
+      return { rows, count: count ?? 0 };
     },
   });
 
