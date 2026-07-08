@@ -14,6 +14,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
 import { Megaphone, Pencil, Plus, Trash2 } from "lucide-react";
+import ImageUpload from "@/components/admin/ImageUpload";
 
 type Status = "draft" | "scheduled" | "active" | "archived";
 
@@ -331,21 +332,13 @@ function PromotionDialog({
           </div>
 
           <div>
-            <Label htmlFor="image_url">Image URL</Label>
-            <Input
-              id="image_url"
+            <Label>Promotion image</Label>
+            <ImageUpload
               value={form.image_url}
-              onChange={(e) => update({ image_url: e.target.value })}
-              placeholder="https://…/image.jpg"
+              onChange={(url) => update({ image_url: url })}
+              module="promotions"
+              subPath={form.store_id ?? "chain-wide"}
             />
-            {form.image_url && (
-              <img
-                src={form.image_url}
-                alt="Preview"
-                className="mt-2 h-32 w-full rounded-md border object-cover"
-                onError={(e) => ((e.target as HTMLImageElement).style.display = "none")}
-              />
-            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
