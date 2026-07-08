@@ -289,6 +289,12 @@ function PromotionDialog({
       if (form.starts_at && form.ends_at && new Date(form.ends_at) <= new Date(form.starts_at)) {
         throw new Error("End time must be after start time");
       }
+      let priorityNum: number | null = null;
+      if (form.priority.trim() !== "") {
+        const n = Number(form.priority);
+        if (!Number.isInteger(n) || n < 1) throw new Error("Priority must be a positive whole number (1 = top).");
+        priorityNum = n;
+      }
 
       const payload = {
         store_id: form.store_id,
@@ -298,6 +304,7 @@ function PromotionDialog({
         starts_at: fromLocalInput(form.starts_at),
         ends_at: fromLocalInput(form.ends_at),
         status: form.status,
+        priority: priorityNum,
       };
 
       if (isEdit && form.id) {
