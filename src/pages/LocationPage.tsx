@@ -170,7 +170,7 @@ const LocationPage = () => {
                 <div className="grid gap-4">
                   <div className="overflow-hidden rounded-lg">
                     <img
-                      src={storeImages[0]}
+                      src={heroImg}
                       alt={`${location.name} exterior`}
                       className="h-64 w-full object-cover transition-transform duration-300 hover:scale-105"
                     />
@@ -178,14 +178,14 @@ const LocationPage = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="overflow-hidden rounded-lg">
                       <img
-                        src={storeImages[1]}
+                        src={interiorImg}
                         alt={`${location.name} interior`}
                         className="h-40 w-full object-cover transition-transform duration-300 hover:scale-105"
                       />
                     </div>
                     <div className="overflow-hidden rounded-lg">
                       <img
-                        src={storeImages[2]}
+                        src={productsImg}
                         alt={`${location.name} products`}
                         className="h-40 w-full object-cover transition-transform duration-300 hover:scale-105"
                       />
