@@ -184,19 +184,20 @@ export default function PromotionsPage() {
               <TableHead>Starts</TableHead>
               <TableHead>Ends</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="w-24">Priority</TableHead>
               <TableHead className="w-32 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {promosQ.isLoading && (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Loading…</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Loading…</TableCell></TableRow>
             )}
             {promosQ.error && (
-              <TableRow><TableCell colSpan={6} className="text-center text-destructive">{(promosQ.error as Error).message}</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center text-destructive">{(promosQ.error as Error).message}</TableCell></TableRow>
             )}
             {!promosQ.isLoading && filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="py-10 text-center">
+                <TableCell colSpan={7} className="py-10 text-center">
                   <Megaphone className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">No promotions found.</p>
                 </TableCell>
@@ -217,6 +218,9 @@ export default function PromotionsPage() {
                 <TableCell className="text-muted-foreground">{fmt(p.ends_at)}</TableCell>
                 <TableCell>
                   <Badge variant={statusVariant(p.status)}>{p.status}</Badge>
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {p.priority == null ? <span className="italic">—</span> : p.priority}
                 </TableCell>
                 <TableCell className="text-right space-x-1">
                   {canManage && (
