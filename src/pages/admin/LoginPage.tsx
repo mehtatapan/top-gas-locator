@@ -32,7 +32,19 @@ export default function AdminLoginPage() {
       setBusy(false);
       if (error) return toast({ title: "Reset failed", description: error.message, variant: "destructive" });
       toast({ title: "Check your email", description: "We sent a password reset link." });
-      setForgot(false);
+      setMode("signin");
+      return;
+    }
+    if (signup) {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: `${window.location.origin}/admin` },
+      });
+      setBusy(false);
+      if (error) return toast({ title: "Sign-up failed", description: error.message, variant: "destructive" });
+      toast({ title: "Account created", description: "Check your email to confirm, then sign in." });
+      setMode("signin");
       return;
     }
     const { error } = await signIn(email, password);
