@@ -21,6 +21,7 @@ import StoresPage from "./pages/admin/StoresPage";
 import TicketsPage from "./pages/admin/TicketsPage";
 import PromotionsPage from "./pages/admin/PromotionsPage";
 import GamingPage from "./pages/admin/GamingPage";
+import PnLPage from "./pages/admin/PnLPage";
 
 const queryClient = new QueryClient();
 
