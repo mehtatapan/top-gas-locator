@@ -230,6 +230,7 @@ export default function PromotionsPage() {
                         starts_at: toLocalInput(p.starts_at),
                         ends_at: toLocalInput(p.ends_at),
                         status: p.status,
+                        priority: p.priority == null ? "" : String(p.priority),
                       })}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
