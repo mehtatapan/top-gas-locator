@@ -14,7 +14,7 @@ interface StorePromotionsProps {
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=600&auto=format&fit=crop";
 
-const MAIN_COUNT = 3;
+const MAIN_COUNT = 4;
 
 function windowLabel(p: PublicPromotion): string | null {
   if (p.ends_at) {
@@ -41,7 +41,7 @@ function PromoCard({
       <button
         type="button"
         onClick={() => onImageClick(src, promo.title)}
-        className="relative block aspect-[3/4] w-full overflow-hidden bg-muted"
+        className="relative block aspect-[4/5] w-full overflow-hidden bg-muted"
         aria-label={`View full poster: ${promo.title}`}
       >
         <img
@@ -51,25 +51,27 @@ function PromoCard({
           loading="lazy"
         />
         {label && (
-          <div className="absolute bottom-3 left-3 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground">
+          <div className="absolute bottom-2 left-2 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-accent-foreground">
             {label}
           </div>
         )}
         {promo.store_id === null && (
-          <div className="absolute right-3 top-3 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
+          <div className="absolute right-2 top-2 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
             All stores
           </div>
         )}
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition group-hover:bg-black/20 group-hover:opacity-100">
-          <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-foreground">
-            Click to view full poster
+          <span className="rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-foreground">
+            View full poster
           </span>
         </div>
       </button>
-      <div className="flex-1 p-5">
-        <h3 className="mb-2 font-display text-lg font-bold text-foreground">{promo.title}</h3>
+      <div className="flex-1 p-3">
+        <h3 className="mb-1 font-display text-sm font-bold leading-tight text-foreground line-clamp-2">
+          {promo.title}
+        </h3>
         {promo.description && (
-          <p className="text-sm text-muted-foreground">{promo.description}</p>
+          <p className="text-xs text-muted-foreground line-clamp-2">{promo.description}</p>
         )}
       </div>
     </div>
@@ -104,14 +106,14 @@ export const StorePromotions = ({ locationName, promotions, loading }: StoreProm
         </div>
 
         {loading ? (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="h-96 animate-pulse rounded-xl bg-muted" />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="h-64 animate-pulse rounded-xl bg-muted" />
             ))}
           </div>
         ) : (
           <>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {main.map((p) => (
                 <PromoCard key={p.id} promo={p} onImageClick={openImg} />
               ))}
@@ -144,7 +146,7 @@ export const StorePromotions = ({ locationName, promotions, loading }: StoreProm
             <DialogTitle>All promotions at {locationName}</DialogTitle>
           </DialogHeader>
           <div className="max-h-[75vh] overflow-y-auto pr-1">
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {promotions.map((p) => (
                 <PromoCard key={p.id} promo={p} onImageClick={openImg} />
               ))}
