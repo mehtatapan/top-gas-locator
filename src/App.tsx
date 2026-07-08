@@ -19,6 +19,7 @@ import UsersPage from "./pages/admin/UsersPage";
 import RolesPage from "./pages/admin/RolesPage";
 import StoresPage from "./pages/admin/StoresPage";
 import TicketsPage from "./pages/admin/TicketsPage";
+import PromotionsPage from "./pages/admin/PromotionsPage";
 
 const queryClient = new QueryClient();
 
