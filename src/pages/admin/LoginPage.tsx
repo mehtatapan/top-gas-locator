@@ -13,7 +13,9 @@ export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
-  const [forgot, setForgot] = useState(false);
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
+  const forgot = mode === "forgot";
+  const signup = mode === "signup";
 
   if (session) {
     const from = (location.state as { from?: string })?.from ?? "/admin";
