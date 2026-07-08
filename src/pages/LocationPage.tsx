@@ -196,34 +196,88 @@ const LocationPage = () => {
                   Store Photos
                 </h2>
                 <div className="grid gap-4">
-                  <div className="overflow-hidden rounded-lg">
-                    <img
-                      src={heroImg}
-                      alt={`${location.name} exterior`}
-                      className="h-64 w-full object-cover transition-transform duration-300 hover:scale-105"
-                    />
-                  </div>
+                  {mainPhotos[0] && (
+                    <button
+                      type="button"
+                      onClick={() => setLightboxSrc(mainPhotos[0])}
+                      className="group overflow-hidden rounded-lg"
+                      aria-label="View full photo"
+                    >
+                      <img
+                        src={mainPhotos[0]}
+                        alt={`${location.name} exterior`}
+                        className="h-64 w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    </button>
+                  )}
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="overflow-hidden rounded-lg">
-                      <img
-                        src={interiorImg}
-                        alt={`${location.name} interior`}
-                        className="h-40 w-full object-cover transition-transform duration-300 hover:scale-105"
-                      />
-                    </div>
-                    <div className="overflow-hidden rounded-lg">
-                      <img
-                        src={productsImg}
-                        alt={`${location.name} products`}
-                        className="h-40 w-full object-cover transition-transform duration-300 hover:scale-105"
-                      />
-                    </div>
+                    {[mainPhotos[1], mainPhotos[2]].map((src, i) =>
+                      src ? (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => setLightboxSrc(src)}
+                          className="group overflow-hidden rounded-lg"
+                          aria-label="View full photo"
+                        >
+                          <img
+                            src={src}
+                            alt={`${location.name} photo ${i + 2}`}
+                            className="h-40 w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                        </button>
+                      ) : (
+                        <div key={i} className="h-40 rounded-lg bg-muted" />
+                      ),
+                    )}
                   </div>
+                  {extraCount > 0 && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setAllPhotosOpen(true)}
+                      className="gap-2 rounded-full"
+                    >
+                      <Plus className="h-4 w-4" />
+                      See {extraCount} more photo{extraCount === 1 ? "" : "s"}
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
           </div>
         </section>
+
+        <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+
+        <Dialog open={allPhotosOpen} onOpenChange={setAllPhotosOpen}>
+          <DialogContent className="max-w-5xl">
+            <DialogHeader>
+              <DialogTitle>All photos — {location.name}</DialogTitle>
+            </DialogHeader>
+            <div className="max-h-[75vh] overflow-y-auto pr-1">
+              <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+                {gallery.map((src, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => {
+                      setAllPhotosOpen(false);
+                      setLightboxSrc(src);
+                    }}
+                    className="group overflow-hidden rounded-lg"
+                  >
+                    <img
+                      src={src}
+                      alt={`${location.name} photo ${i + 1}`}
+                      className="h-48 w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
 
         {/* Promotions */}
         <section className="bg-muted py-16">
