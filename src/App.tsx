@@ -15,6 +15,8 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import AdminLoginPage from "./pages/admin/LoginPage";
 import ResetPasswordPage from "./pages/admin/ResetPasswordPage";
 import ComingSoon from "./pages/admin/ComingSoon";
+import UsersPage from "./pages/admin/UsersPage";
+import RolesPage from "./pages/admin/RolesPage";
 
 const queryClient = new QueryClient();
 
