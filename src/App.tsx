@@ -58,7 +58,7 @@ const App = () => (
                 <Route path="stores" element={<RequireAuth permission="stores.view"><StoresPage /></RequireAuth>} />
                 <Route path="users" element={<RequireAuth permission="users.view"><UsersPage /></RequireAuth>} />
                 <Route path="roles" element={<RequireAuth permission="roles.view"><RolesPage /></RequireAuth>} />
-                <Route path="audit" element={<RequireAuth permission="admin.audit"><ComingSoon title="Audit Log" /></RequireAuth>} />
+                <Route path="audit" element={<RequireAuth permission="admin.audit"><AuditPage /></RequireAuth>} />
               </Route>
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
