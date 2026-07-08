@@ -285,6 +285,7 @@ function PromotionDialog({
         store_id: form.store_id,
         title: form.title.trim(),
         description: form.description.trim() || null,
+        image_url: form.image_url.trim() || null,
         starts_at: fromLocalInput(form.starts_at),
         ends_at: fromLocalInput(form.ends_at),
         status: form.status,
@@ -327,6 +328,24 @@ function PromotionDialog({
           <div>
             <Label htmlFor="description">Description</Label>
             <Textarea id="description" rows={3} value={form.description} onChange={(e) => update({ description: e.target.value })} />
+          </div>
+
+          <div>
+            <Label htmlFor="image_url">Image URL</Label>
+            <Input
+              id="image_url"
+              value={form.image_url}
+              onChange={(e) => update({ image_url: e.target.value })}
+              placeholder="https://…/image.jpg"
+            />
+            {form.image_url && (
+              <img
+                src={form.image_url}
+                alt="Preview"
+                className="mt-2 h-32 w-full rounded-md border object-cover"
+                onError={(e) => ((e.target as HTMLImageElement).style.display = "none")}
+              />
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
