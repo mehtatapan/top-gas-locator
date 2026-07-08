@@ -1,18 +1,40 @@
+import { useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { locations } from "@/data/locations";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { LocationSEO } from "@/components/LocationSEO";
 import { StorePromotions } from "@/components/StorePromotions";
+import { ImageLightbox } from "@/components/ImageLightbox";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useLocationStore, usePublicPromotions } from "@/hooks/useLocationStore";
-import { MapPin, Phone, Clock, Navigation, Utensils, ArrowLeft, Fuel, Coffee, CreditCard } from "lucide-react";
+import { MapPin, Phone, Clock, Navigation, Utensils, ArrowLeft, Fuel, Coffee, CreditCard, Plus } from "lucide-react";
 
 // Fallback stock images if a store has no custom photos configured yet.
-const fallbackImages = {
-  hero: "https://images.unsplash.com/photo-1567954970774-58d6aa6c50dc?w=800&auto=format&fit=crop",
-  interior: "https://images.unsplash.com/photo-1527018601619-a508a2be00cd?w=800&auto=format&fit=crop",
-  products: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&auto=format&fit=crop",
-};
+const fallbackImages = [
+  "https://images.unsplash.com/photo-1567954970774-58d6aa6c50dc?w=1200&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1527018601619-a508a2be00cd?w=1200&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&auto=format&fit=crop",
+];
+
+/** Merge legacy hero/interior/products fields with the new gallery[] into one ordered list. */
+function buildGallery(photosMeta: unknown): string[] {
+  const p = (photosMeta ?? {}) as {
+    gallery?: unknown;
+    hero?: unknown;
+    interior?: unknown;
+    products?: unknown;
+  };
+  const gallery = Array.isArray(p.gallery)
+    ? p.gallery.filter((x): x is string => typeof x === "string" && x.trim() !== "")
+    : [];
+  if (gallery.length > 0) return gallery;
+  const legacy = [p.hero, p.interior, p.products].filter(
+    (x): x is string => typeof x === "string" && x.trim() !== "",
+  );
+  return legacy;
+}
 
 const offerings = [
   {
@@ -38,10 +60,16 @@ const LocationPage = () => {
   const storeQ = useLocationStore(locationId);
   const promosQ = usePublicPromotions(storeQ.data?.id);
 
-  const photos = storeQ.data?.meta?.photos ?? {};
-  const heroImg = photos.hero || fallbackImages.hero;
-  const interiorImg = photos.interior || fallbackImages.interior;
-  const productsImg = photos.products || fallbackImages.products;
+  const gallery = useMemo(() => {
+    const g = buildGallery(storeQ.data?.meta?.photos);
+    return g.length > 0 ? g : fallbackImages;
+  }, [storeQ.data?.meta?.photos]);
+
+  const mainPhotos = gallery.slice(0, 3);
+  const extraCount = Math.max(0, gallery.length - 3);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [allPhotosOpen, setAllPhotosOpen] = useState(false);
+
 
   if (!location) {
     return (
