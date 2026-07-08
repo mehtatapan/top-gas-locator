@@ -1750,6 +1750,7 @@ export type Database = {
           ends_at: string | null
           id: string
           image_url: string | null
+          priority: number | null
           starts_at: string | null
           status: Database["public"]["Enums"]["promotion_status"]
           store_id: string | null
@@ -1764,6 +1765,7 @@ export type Database = {
           ends_at?: string | null
           id?: string
           image_url?: string | null
+          priority?: number | null
           starts_at?: string | null
           status?: Database["public"]["Enums"]["promotion_status"]
           store_id?: string | null
@@ -1778,6 +1780,7 @@ export type Database = {
           ends_at?: string | null
           id?: string
           image_url?: string | null
+          priority?: number | null
           starts_at?: string | null
           status?: Database["public"]["Enums"]["promotion_status"]
           store_id?: string | null
