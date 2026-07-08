@@ -3,7 +3,8 @@ import formidable from "formidable";
 import fs from "node:fs";
 import { Readable } from "node:stream";
 import { Resend } from "resend";
-import { getDrive, getSheets } from "./_lib/google.js";
+import { getSheets } from "./_lib/google.js";
+import { uploadToDrive } from "./_lib/drive-uploader.js";
 
 export const config = {
   api: {
@@ -108,30 +109,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: "Server missing GOOGLE_DRIVE_FOLDER_ID / GOOGLE_SHEET_ID" });
     }
 
-    // --- Upload to Drive ---
-    const drive = getDrive();
+    // --- Upload to Drive via shared uploader (Careers/{position}/{storeLocation}/) ---
     const today = new Date().toISOString().slice(0, 10);
     const fileName = `${today}_${sanitize(firstName)}_${sanitize(lastName)}_${sanitize(position)}_${sanitize(storeLocation)}.${ext(resume.originalFilename ?? "", mime)}`;
 
-    const uploadRes = await drive.files.create({
-      requestBody: { name: fileName, parents: [folderId] },
-      media: { mimeType: mime, body: fs.createReadStream(resume.filepath) },
-      fields: "id, webViewLink",
-      supportsAllDrives: true,
+    const uploaded = await uploadToDrive({
+      pathSegments: ["VT Gas & Market", "Careers", position, storeLocation],
+      name: fileName,
+      mimeType: mime,
+      body: fs.createReadStream(resume.filepath),
+      makePublicLink: true,
     });
-
-    const fileId = uploadRes.data.id!;
-    // Make link viewable by anyone with link (read-only)
-    try {
-      await drive.permissions.create({
-        fileId,
-        requestBody: { role: "reader", type: "anyone" },
-        supportsAllDrives: true,
-      });
-    } catch (e) {
-      console.warn("permissions.create failed (continuing):", (e as Error).message);
-    }
-    const resumeLink = uploadRes.data.webViewLink ?? `https://drive.google.com/file/d/${fileId}/view`;
+    const fileId = uploaded.driveFileId;
+    const resumeLink = uploaded.webViewLink;
 
     // --- Append row to Sheet ---
     const sheets = getSheets();

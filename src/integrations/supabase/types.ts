@@ -14,16 +14,1033 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      attachments: {
+        Row: {
+          deleted_at: string | null
+          drive_file_id: string
+          drive_folder_id: string | null
+          drive_folder_path: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          mime_type: string | null
+          module: string
+          name: string
+          size_bytes: number | null
+          store_id: string | null
+          uploaded_at: string
+          uploaded_by: string | null
+          web_view_link: string | null
+        }
+        Insert: {
+          deleted_at?: string | null
+          drive_file_id: string
+          drive_folder_id?: string | null
+          drive_folder_path?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          mime_type?: string | null
+          module: string
+          name: string
+          size_bytes?: number | null
+          store_id?: string | null
+          uploaded_at?: string
+          uploaded_by?: string | null
+          web_view_link?: string | null
+        }
+        Update: {
+          deleted_at?: string | null
+          drive_file_id?: string
+          drive_folder_id?: string | null
+          drive_folder_path?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          mime_type?: string | null
+          module?: string
+          name?: string
+          size_bytes?: number | null
+          store_id?: string | null
+          uploaded_at?: string
+          uploaded_by?: string | null
+          web_view_link?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attachments_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_id: string | null
+          after: Json | null
+          before: Json | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          ip: string | null
+          module: string
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip?: string | null
+          module: string
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip?: string | null
+          module?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      drive_folders: {
+        Row: {
+          created_at: string
+          drive_folder_id: string
+          id: string
+          parent_id: string | null
+          path: string
+        }
+        Insert: {
+          created_at?: string
+          drive_folder_id: string
+          id?: string
+          parent_id?: string | null
+          path: string
+        }
+        Update: {
+          created_at?: string
+          drive_folder_id?: string
+          id?: string
+          parent_id?: string | null
+          path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drive_folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "drive_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_queue: {
+        Row: {
+          attempts: number
+          created_at: string
+          id: string
+          last_error: string | null
+          payload: Json
+          send_after: string
+          sent_at: string | null
+          status: string
+          subject: string | null
+          template: string
+          to_email: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          payload?: Json
+          send_after?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          template: string
+          to_email: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          payload?: Json
+          send_after?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          template?: string
+          to_email?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      expense_categories: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          key: string
+          name: string
+          parent_id: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          key: string
+          name: string
+          parent_id?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          key?: string
+          name?: string
+          parent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gaming_manual_payouts: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          paid_at: string
+          paid_by: string | null
+          period_id: string
+          reason: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          paid_at?: string
+          paid_by?: string | null
+          period_id: string
+          reason?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          paid_at?: string
+          paid_by?: string | null
+          period_id?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gaming_manual_payouts_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "gaming_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gaming_periods: {
+        Row: {
+          closed_by: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          opened_by: string | null
+          period_end: string | null
+          period_start: string
+          status: Database["public"]["Enums"]["gaming_period_status"]
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          closed_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          opened_by?: string | null
+          period_end?: string | null
+          period_start: string
+          status?: Database["public"]["Enums"]["gaming_period_status"]
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          closed_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          opened_by?: string | null
+          period_end?: string | null
+          period_start?: string
+          status?: Database["public"]["Enums"]["gaming_period_status"]
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gaming_periods_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gaming_reports: {
+        Row: {
+          generated_at: string
+          generated_by: string | null
+          id: string
+          pdf_attachment_id: string | null
+          period_id: string
+        }
+        Insert: {
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          pdf_attachment_id?: string | null
+          period_id: string
+        }
+        Update: {
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          pdf_attachment_id?: string | null
+          period_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gaming_reports_pdf_attachment_id_fkey"
+            columns: ["pdf_attachment_id"]
+            isOneToOne: false
+            referencedRelation: "attachments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gaming_reports_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "gaming_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gaming_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          id: string
+          machine_id: string | null
+          notes: string | null
+          occurred_at: string
+          period_id: string
+          type: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          machine_id?: string | null
+          notes?: string | null
+          occurred_at?: string
+          period_id: string
+          type: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          machine_id?: string | null
+          notes?: string | null
+          occurred_at?: string
+          period_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gaming_transactions_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "gaming_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          kind: string
+          link: string | null
+          read_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          link?: string | null
+          read_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          link?: string | null
+          read_at?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      permissions: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          key: string
+          module: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key: string
+          module?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key?: string
+          module?: string | null
+        }
+        Relationships: []
+      }
+      pnl_entries: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          entry_date: string
+          expense_category_id: string | null
+          id: string
+          kind: Database["public"]["Enums"]["pnl_kind"]
+          memo: string | null
+          period_month: string
+          revenue_category_id: string | null
+          store_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          entry_date?: string
+          expense_category_id?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["pnl_kind"]
+          memo?: string | null
+          period_month: string
+          revenue_category_id?: string | null
+          store_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          entry_date?: string
+          expense_category_id?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["pnl_kind"]
+          memo?: string | null
+          period_month?: string
+          revenue_category_id?: string | null
+          store_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pnl_entries_expense_category_id_fkey"
+            columns: ["expense_category_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pnl_entries_revenue_category_id_fkey"
+            columns: ["revenue_category_id"]
+            isOneToOne: false
+            referencedRelation: "revenue_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pnl_entries_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          active: boolean
+          avatar_drive_file_id: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          avatar_drive_file_id?: string | null
+          created_at?: string
+          full_name?: string | null
+          id: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          avatar_drive_file_id?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      promotions: {
+        Row: {
+          banner_attachment_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          ends_at: string | null
+          id: string
+          starts_at: string | null
+          status: Database["public"]["Enums"]["promotion_status"]
+          store_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          banner_attachment_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          starts_at?: string | null
+          status?: Database["public"]["Enums"]["promotion_status"]
+          store_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          banner_attachment_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          starts_at?: string | null
+          status?: Database["public"]["Enums"]["promotion_status"]
+          store_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotions_banner_attachment_id_fkey"
+            columns: ["banner_attachment_id"]
+            isOneToOne: false
+            referencedRelation: "attachments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      revenue_categories: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          key: string
+          name: string
+          parent_id: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          key: string
+          name: string
+          parent_id?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          key?: string
+          name?: string
+          parent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revenue_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "revenue_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      role_permissions: {
+        Row: {
+          permission_id: string
+          role_id: string
+        }
+        Insert: {
+          permission_id: string
+          role_id: string
+        }
+        Update: {
+          permission_id?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roles: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          key: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      store_managers: {
+        Row: {
+          created_at: string
+          store_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          store_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          store_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_managers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stores: {
+        Row: {
+          active: boolean
+          address: string | null
+          city: string | null
+          created_at: string
+          id: string
+          meta: Json
+          name: string
+          phone: string | null
+          slug: string
+          state: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          address?: string | null
+          city?: string | null
+          created_at?: string
+          id?: string
+          meta?: Json
+          name: string
+          phone?: string | null
+          slug: string
+          state?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          address?: string | null
+          city?: string | null
+          created_at?: string
+          id?: string
+          meta?: Json
+          name?: string
+          phone?: string | null
+          slug?: string
+          state?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ticket_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          assignee_id: string | null
+          id: string
+          ticket_id: string
+          unassigned_at: string | null
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          assignee_id?: string | null
+          id?: string
+          ticket_id: string
+          unassigned_at?: string | null
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          assignee_id?: string | null
+          id?: string
+          ticket_id?: string
+          unassigned_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_assignments_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ticket_categories: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      ticket_comments: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          ticket_id: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          id?: string
+          ticket_id: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          ticket_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_comments_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ticket_history: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          field: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+          ticket_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          field: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          ticket_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          field?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_history_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tickets: {
+        Row: {
+          assignee_id: string | null
+          category_id: string | null
+          closed_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_at: string | null
+          id: string
+          number: number
+          priority: Database["public"]["Enums"]["ticket_priority"]
+          status: Database["public"]["Enums"]["ticket_status"]
+          store_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assignee_id?: string | null
+          category_id?: string | null
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          number?: number
+          priority?: Database["public"]["Enums"]["ticket_priority"]
+          status?: Database["public"]["Enums"]["ticket_status"]
+          store_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assignee_id?: string | null
+          category_id?: string | null
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          number?: number
+          priority?: Database["public"]["Enums"]["ticket_priority"]
+          status?: Database["public"]["Enums"]["ticket_status"]
+          store_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tickets_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "ticket_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          granted_by: string | null
+          id: string
+          role_id: string
+          store_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          role_id: string
+          store_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          role_id?: string
+          store_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_roles_store_fk"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      can_access_store: {
+        Args: { _store_id: string; _user_id: string }
+        Returns: boolean
+      }
+      has_permission: {
+        Args: { _perm_key: string; _user_id: string }
+        Returns: boolean
+      }
+      has_role: {
+        Args: { _role_key: string; _user_id: string }
+        Returns: boolean
+      }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
+      my_permissions: {
+        Args: never
+        Returns: {
+          permission_key: string
+        }[]
+      }
+      user_store_ids: { Args: { _user_id: string }; Returns: string[] }
     }
     Enums: {
-      [_ in never]: never
+      gaming_period_status: "open" | "closed"
+      pnl_kind: "expense" | "revenue"
+      promotion_status: "draft" | "scheduled" | "active" | "archived"
+      ticket_priority: "low" | "medium" | "high" | "urgent"
+      ticket_status:
+        | "open"
+        | "in_progress"
+        | "waiting"
+        | "resolved"
+        | "closed"
+        | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +1167,19 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      gaming_period_status: ["open", "closed"],
+      pnl_kind: ["expense", "revenue"],
+      promotion_status: ["draft", "scheduled", "active", "archived"],
+      ticket_priority: ["low", "medium", "high", "urgent"],
+      ticket_status: [
+        "open",
+        "in_progress",
+        "waiting",
+        "resolved",
+        "closed",
+        "cancelled",
+      ],
+    },
   },
 } as const
