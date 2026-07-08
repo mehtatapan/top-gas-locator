@@ -100,10 +100,10 @@ function StoreCard({
 
   const save = useMutation({
     mutationFn: async () => {
-      const nextMeta = { ...(store.meta ?? {}), photos };
+      const nextMeta = { ...(store.meta ?? {}), photos: { ...photos } } as Record<string, unknown>;
       const { error } = await supabase
         .from("stores")
-        .update({ meta: nextMeta })
+        .update({ meta: nextMeta as never })
         .eq("id", store.id);
       if (error) throw error;
     },
