@@ -4,16 +4,17 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { LocationSEO } from "@/components/LocationSEO";
 import { StorePromotions } from "@/components/StorePromotions";
+import { useLocationStore, usePublicPromotions } from "@/hooks/useLocationStore";
 import { MapPin, Phone, Clock, Navigation, Utensils, ArrowLeft, Fuel, Coffee, CreditCard } from "lucide-react";
 
-// Stock images for store photos (to be replaced with real photos later)
-const storeImages = [
-  "https://images.unsplash.com/photo-1567954970774-58d6aa6c50dc?w=800&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1527018601619-a508a2be00cd?w=800&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&auto=format&fit=crop",
-];
+// Fallback stock images if a store has no custom photos configured yet.
+const fallbackImages = {
+  hero: "https://images.unsplash.com/photo-1567954970774-58d6aa6c50dc?w=800&auto=format&fit=crop",
+  interior: "https://images.unsplash.com/photo-1527018601619-a508a2be00cd?w=800&auto=format&fit=crop",
+  products: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&auto=format&fit=crop",
+};
 
-const promotions = [
+const offerings = [
   {
     title: "Fresh Coffee Daily",
     description: "Start your day with our freshly brewed coffee. Multiple flavors available!",
@@ -34,6 +35,13 @@ const promotions = [
 const LocationPage = () => {
   const { locationId } = useParams<{ locationId: string }>();
   const location = locations.find((loc) => loc.id === locationId);
+  const storeQ = useLocationStore(locationId);
+  const promosQ = usePublicPromotions(storeQ.data?.id);
+
+  const photos = storeQ.data?.meta?.photos ?? {};
+  const heroImg = photos.hero || fallbackImages.hero;
+  const interiorImg = photos.interior || fallbackImages.interior;
+  const productsImg = photos.products || fallbackImages.products;
 
   if (!location) {
     return (
