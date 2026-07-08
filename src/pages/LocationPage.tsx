@@ -204,7 +204,7 @@ const LocationPage = () => {
               What We Offer
             </h2>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {promotions.map((promo, index) => (
+              {offerings.map((promo, index) => (
                 <div
                   key={index}
                   className="rounded-lg bg-[hsl(var(--card-elevated))] p-6 card-shadow transition-all duration-300 hover:-translate-y-1 hover:elevated-shadow"
@@ -223,7 +223,11 @@ const LocationPage = () => {
         </section>
 
         {/* Store Promotions */}
-        <StorePromotions locationName={location.name} />
+        <StorePromotions
+          locationName={location.name}
+          promotions={promosQ.data ?? []}
+          loading={promosQ.isLoading}
+        />
 
         {/* Directions */}
         <section className="py-16">
