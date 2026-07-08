@@ -399,7 +399,7 @@ function TicketDrawer({
   });
 
   const patch = useMutation({
-    mutationFn: async (updates: Partial<TicketRow>) => {
+    mutationFn: async (updates: Record<string, unknown>) => {
       const { error } = await supabase.from("tickets").update(updates).eq("id", ticketId!);
       if (error) throw error;
     },
