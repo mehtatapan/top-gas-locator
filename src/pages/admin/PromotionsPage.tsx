@@ -27,6 +27,7 @@ interface Promotion {
   starts_at: string | null;
   ends_at: string | null;
   status: Status;
+  priority: number | null;
   created_at: string;
   updated_at: string;
   stores?: { id: string; name: string } | null;
@@ -43,10 +44,11 @@ type Draft = {
   starts_at: string; // datetime-local
   ends_at: string;
   status: Status;
+  priority: string; // keep as string for input
 };
 
 const EMPTY: Draft = {
-  store_id: null, title: "", description: "", image_url: "", starts_at: "", ends_at: "", status: "draft",
+  store_id: null, title: "", description: "", image_url: "", starts_at: "", ends_at: "", status: "draft", priority: "",
 };
 
 const STATUSES: Status[] = ["draft", "scheduled", "active", "archived"];
