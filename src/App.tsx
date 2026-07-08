@@ -21,6 +21,7 @@ import StoresPage from "./pages/admin/StoresPage";
 import TicketsPage from "./pages/admin/TicketsPage";
 import PromotionsPage from "./pages/admin/PromotionsPage";
 import GamingPage from "./pages/admin/GamingPage";
+import PnLPage from "./pages/admin/PnLPage";
 
 const queryClient = new QueryClient();
 
@@ -52,7 +53,7 @@ const App = () => (
                 <Route path="tickets" element={<RequireAuth permission="tickets.view"><TicketsPage /></RequireAuth>} />
                 <Route path="promotions" element={<RequireAuth permission="promotions.view"><PromotionsPage /></RequireAuth>} />
                 <Route path="gaming" element={<RequireAuth permission="gaming.view"><GamingPage /></RequireAuth>} />
-                <Route path="pnl" element={<RequireAuth permission="pnl.view"><ComingSoon title="Profit & Loss" /></RequireAuth>} />
+                <Route path="pnl" element={<RequireAuth permission="pnl.view"><PnLPage /></RequireAuth>} />
                 <Route path="stores" element={<RequireAuth permission="stores.view"><StoresPage /></RequireAuth>} />
                 <Route path="users" element={<RequireAuth permission="users.view"><UsersPage /></RequireAuth>} />
                 <Route path="roles" element={<RequireAuth permission="roles.view"><RolesPage /></RequireAuth>} />
