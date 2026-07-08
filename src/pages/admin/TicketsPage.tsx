@@ -398,8 +398,9 @@ function TicketDrawer({
     },
   });
 
+  type TicketUpdate = Database["public"]["Tables"]["tickets"]["Update"];
   const patch = useMutation({
-    mutationFn: async (updates: Record<string, unknown>) => {
+    mutationFn: async (updates: TicketUpdate) => {
       const { error } = await supabase.from("tickets").update(updates).eq("id", ticketId!);
       if (error) throw error;
     },
