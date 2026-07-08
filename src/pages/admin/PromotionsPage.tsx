@@ -97,7 +97,8 @@ export default function PromotionsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("promotions")
-        .select("id, store_id, title, description, image_url, starts_at, ends_at, status, created_at, updated_at, stores(id, name)")
+        .select("id, store_id, title, description, image_url, starts_at, ends_at, status, priority, created_at, updated_at, stores(id, name)")
+        .order("priority", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as unknown as Promotion[];
