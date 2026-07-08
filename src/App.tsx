@@ -18,6 +18,7 @@ import ComingSoon from "./pages/admin/ComingSoon";
 import UsersPage from "./pages/admin/UsersPage";
 import RolesPage from "./pages/admin/RolesPage";
 import StoresPage from "./pages/admin/StoresPage";
+import TicketsPage from "./pages/admin/TicketsPage";
 
 const queryClient = new QueryClient();
 
@@ -46,7 +47,7 @@ const App = () => (
                 }
               >
                 <Route index element={<AdminDashboard />} />
-                <Route path="tickets" element={<RequireAuth permission="tickets.view"><ComingSoon title="Tickets" /></RequireAuth>} />
+                <Route path="tickets" element={<RequireAuth permission="tickets.view"><TicketsPage /></RequireAuth>} />
                 <Route path="promotions" element={<RequireAuth permission="promotions.view"><ComingSoon title="Promotions" /></RequireAuth>} />
                 <Route path="gaming" element={<RequireAuth permission="gaming.view"><ComingSoon title="Gaming" /></RequireAuth>} />
                 <Route path="pnl" element={<RequireAuth permission="pnl.view"><ComingSoon title="Profit & Loss" /></RequireAuth>} />
