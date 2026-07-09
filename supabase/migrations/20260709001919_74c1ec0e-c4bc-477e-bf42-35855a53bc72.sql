@@ -1,0 +1,2 @@
+DROP POLICY IF EXISTS promotion_stores_write ON public.promotion_stores;
+CREATE POLICY promotion_stores_write ON public.promotion_stores FOR ALL TO authenticated USING (has_permission(auth.uid(), 'promotions.manage') OR is_admin(auth.uid())) WITH CHECK (has_permission(auth.uid(), 'promotions.manage') OR is_admin(auth.uid()));
