@@ -7,13 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
-import { Megaphone, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, Megaphone, Pencil, Plus, Trash2 } from "lucide-react";
 import ImageUpload from "@/components/admin/ImageUpload";
 
 type Status = "draft" | "scheduled" | "active" | "archived";
@@ -30,25 +32,25 @@ interface Promotion {
   priority: number | null;
   created_at: string;
   updated_at: string;
-  stores?: { id: string; name: string } | null;
+  promotion_stores?: { store_id: string; stores?: { id: string; name: string } | null }[];
 }
 
 interface StoreLite { id: string; name: string }
 
 type Draft = {
   id?: string;
-  store_id: string | null;
+  store_ids: string[]; // empty = chain-wide (all stores)
   title: string;
   description: string;
   image_url: string;
-  starts_at: string; // datetime-local
+  starts_at: string;
   ends_at: string;
   status: Status;
-  priority: string; // keep as string for input
+  priority: string;
 };
 
 const EMPTY: Draft = {
-  store_id: null, title: "", description: "", image_url: "", starts_at: "", ends_at: "", status: "draft", priority: "",
+  store_ids: [], title: "", description: "", image_url: "", starts_at: "", ends_at: "", status: "draft", priority: "",
 };
 
 const STATUSES: Status[] = ["draft", "scheduled", "active", "archived"];
@@ -56,7 +58,6 @@ const STATUSES: Status[] = ["draft", "scheduled", "active", "archived"];
 const statusVariant = (s: Status): "default" | "secondary" | "outline" =>
   s === "active" ? "default" : s === "archived" ? "outline" : "secondary";
 
-// convert timestamptz -> value for <input type="datetime-local">
 function toLocalInput(iso: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
@@ -97,7 +98,7 @@ export default function PromotionsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("promotions")
-        .select("id, store_id, title, description, image_url, starts_at, ends_at, status, priority, created_at, updated_at, stores(id, name)")
+        .select("id, store_id, title, description, image_url, starts_at, ends_at, status, priority, created_at, updated_at, promotion_stores(store_id, stores(id, name))")
         .order("priority", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -109,9 +110,14 @@ export default function PromotionsPage() {
     const list = promosQ.data ?? [];
     return list.filter((p) => {
       if (statusFilter !== "all" && p.status !== statusFilter) return false;
+      const linkedIds = (p.promotion_stores ?? []).map((l) => l.store_id);
+      const isChainWide = linkedIds.length === 0;
       if (storeFilter !== "all") {
-        if (storeFilter === "__all__" && p.store_id !== null) return false;
-        if (storeFilter !== "__all__" && p.store_id !== storeFilter) return false;
+        if (storeFilter === "__all__") {
+          if (!isChainWide) return false;
+        } else {
+          if (!linkedIds.includes(storeFilter)) return false;
+        }
       }
       if (filter.trim()) {
         const q = filter.toLowerCase();
@@ -133,13 +139,31 @@ export default function PromotionsPage() {
     onError: (e: Error) => toast({ title: "Failed", description: e.message, variant: "destructive" }),
   });
 
+  const storeNameById = useMemo(() => {
+    const m = new Map<string, string>();
+    (storesQ.data ?? []).forEach((s) => m.set(s.id, s.name));
+    return m;
+  }, [storesQ.data]);
+
+  function renderStoresCell(p: Promotion) {
+    const links = p.promotion_stores ?? [];
+    if (links.length === 0) return <span className="italic text-muted-foreground">All stores</span>;
+    const names = links.map((l) => l.stores?.name ?? storeNameById.get(l.store_id) ?? "—");
+    if (names.length <= 2) return <span className="text-muted-foreground">{names.join(", ")}</span>;
+    return (
+      <span className="text-muted-foreground" title={names.join(", ")}>
+        {names.slice(0, 2).join(", ")} <Badge variant="outline" className="ml-1">+{names.length - 2}</Badge>
+      </span>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Promotions</h1>
           <p className="text-sm text-muted-foreground">
-            Create and schedule in-store promotions. Scope to a single store or run chain-wide.
+            Create and schedule in-store promotions. Assign to one, several, or all stores.
           </p>
         </div>
         {canManage && (
@@ -180,7 +204,7 @@ export default function PromotionsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Title</TableHead>
-              <TableHead>Store</TableHead>
+              <TableHead>Stores</TableHead>
               <TableHead>Starts</TableHead>
               <TableHead>Ends</TableHead>
               <TableHead>Status</TableHead>
@@ -211,9 +235,7 @@ export default function PromotionsPage() {
                     <div className="truncate text-xs text-muted-foreground">{p.description}</div>
                   )}
                 </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {p.stores?.name ?? <span className="italic">All stores</span>}
-                </TableCell>
+                <TableCell>{renderStoresCell(p)}</TableCell>
                 <TableCell className="text-muted-foreground">{fmt(p.starts_at)}</TableCell>
                 <TableCell className="text-muted-foreground">{fmt(p.ends_at)}</TableCell>
                 <TableCell>
@@ -227,7 +249,7 @@ export default function PromotionsPage() {
                     <>
                       <Button size="sm" variant="outline" onClick={() => setEditing({
                         id: p.id,
-                        store_id: p.store_id,
+                        store_ids: (p.promotion_stores ?? []).map((l) => l.store_id),
                         title: p.title,
                         description: p.description ?? "",
                         image_url: p.image_url ?? "",
@@ -267,6 +289,63 @@ export default function PromotionsPage() {
   );
 }
 
+function StoreMultiSelect({
+  stores, selected, onChange,
+}: {
+  stores: StoreLite[];
+  selected: string[];
+  onChange: (ids: string[]) => void;
+}) {
+  const allSelected = selected.length === 0; // chain-wide
+  const toggle = (id: string) => {
+    if (selected.includes(id)) onChange(selected.filter((s) => s !== id));
+    else onChange([...selected, id]);
+  };
+  const label = allSelected
+    ? "All stores (chain-wide)"
+    : selected.length === 1
+      ? stores.find((s) => s.id === selected[0])?.name ?? "1 store"
+      : `${selected.length} stores selected`;
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" className="w-full justify-between font-normal">
+          <span className="truncate">{label}</span>
+          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <div className="max-h-72 overflow-y-auto p-1">
+          <button
+            type="button"
+            onClick={() => onChange([])}
+            className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-sm hover:bg-accent"
+          >
+            <Checkbox checked={allSelected} className="pointer-events-none" />
+            <span className="font-medium">All stores (chain-wide)</span>
+          </button>
+          <div className="my-1 h-px bg-border" />
+          {stores.map((s) => {
+            const checked = selected.includes(s.id);
+            return (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => toggle(s.id)}
+                className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-sm hover:bg-accent"
+              >
+                <Checkbox checked={checked} className="pointer-events-none" />
+                <span className="truncate">{s.name}</span>
+              </button>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function PromotionDialog({
   draft, stores, onClose, onSaved,
 }: {
@@ -296,8 +375,11 @@ function PromotionDialog({
         priorityNum = n;
       }
 
+      // Keep legacy store_id in sync: single store = that id, otherwise null.
+      const legacyStoreId = form.store_ids.length === 1 ? form.store_ids[0] : null;
+
       const payload = {
-        store_id: form.store_id,
+        store_id: legacyStoreId,
         title: form.title.trim(),
         description: form.description.trim() || null,
         image_url: form.image_url.trim() || null,
@@ -307,16 +389,37 @@ function PromotionDialog({
         priority: priorityNum,
       };
 
+      let promoId = form.id;
       if (isEdit && form.id) {
         const { error } = await supabase.from("promotions").update(payload).eq("id", form.id);
         if (error) throw error;
-        toast({ title: "Promotion updated" });
       } else {
         const { data: { user } } = await supabase.auth.getUser();
-        const { error } = await supabase.from("promotions").insert({ ...payload, created_by: user?.id ?? null });
+        const { data, error } = await supabase
+          .from("promotions")
+          .insert({ ...payload, created_by: user?.id ?? null })
+          .select("id")
+          .single();
         if (error) throw error;
-        toast({ title: "Promotion created" });
+        promoId = data.id;
       }
+
+      // Replace store links to match selection.
+      if (promoId) {
+        const { error: delErr } = await supabase
+          .from("promotion_stores")
+          .delete()
+          .eq("promotion_id", promoId);
+        if (delErr) throw delErr;
+        if (form.store_ids.length > 0) {
+          const { error: insErr } = await supabase
+            .from("promotion_stores")
+            .insert(form.store_ids.map((sid) => ({ promotion_id: promoId!, store_id: sid })));
+          if (insErr) throw insErr;
+        }
+      }
+
+      toast({ title: isEdit ? "Promotion updated" : "Promotion created" });
       onSaved();
     } catch (e) {
       toast({ title: "Failed", description: (e as Error).message, variant: "destructive" });
@@ -331,7 +434,7 @@ function PromotionDialog({
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit promotion" : "New promotion"}</DialogTitle>
           <DialogDescription>
-            Leave the store empty to run chain-wide. Schedule with start/end times or leave open-ended.
+            Pick one or more stores, or leave empty to run chain-wide across every location.
           </DialogDescription>
         </DialogHeader>
 
@@ -352,25 +455,23 @@ function PromotionDialog({
               value={form.image_url}
               onChange={(url) => update({ image_url: url })}
               module="promotions"
-              subPath={form.store_id ?? "chain-wide"}
+              subPath={form.store_ids.length === 1 ? form.store_ids[0] : "chain-wide"}
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2">
-              <Label>Store</Label>
-              <Select
-                value={form.store_id ?? "__all__"}
-                onValueChange={(v) => update({ store_id: v === "__all__" ? null : v })}
-              >
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">All stores (chain-wide)</SelectItem>
-                  {stores.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
+          <div>
+            <Label>Stores</Label>
+            <StoreMultiSelect
+              stores={stores}
+              selected={form.store_ids}
+              onChange={(ids) => update({ store_ids: ids })}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Select any combination of stores. Leave empty to show at every location.
+            </p>
+          </div>
 
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <Label htmlFor="starts_at">Starts</Label>
               <Input id="starts_at" type="datetime-local" value={form.starts_at} onChange={(e) => update({ starts_at: e.target.value })} />
