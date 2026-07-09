@@ -50,12 +50,24 @@ export function usePublicPromotions(storeId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("promotions")
-        .select("id, store_id, title, description, image_url, starts_at, ends_at, priority")
-        .or(`store_id.eq.${storeId},store_id.is.null`)
+        .select("id, store_id, title, description, image_url, starts_at, ends_at, priority, promotion_stores(store_id)")
         .order("priority", { ascending: true, nullsFirst: false })
         .order("starts_at", { ascending: false, nullsFirst: false });
       if (error) throw error;
-      return (data ?? []) as unknown as PublicPromotion[];
+      type Row = PublicPromotion & { promotion_stores: { store_id: string }[] | null };
+      const rows = (data ?? []) as unknown as Row[];
+      return rows
+        .filter((r) => {
+          const links = r.promotion_stores ?? [];
+          // No links = chain-wide (visible to every store). Otherwise must include this store.
+          if (links.length === 0) return true;
+          return links.some((l) => l.store_id === storeId);
+        })
+        .map(({ promotion_stores, ...p }) => ({
+          ...p,
+          // Expose chain-wide as store_id=null so the UI "All stores" badge keeps working.
+          store_id: (promotion_stores?.length ?? 0) === 0 ? null : storeId!,
+        })) as PublicPromotion[];
     },
   });
 }
