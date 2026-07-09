@@ -1741,6 +1741,39 @@ export type Database = {
         }
         Relationships: []
       }
+      promotion_stores: {
+        Row: {
+          created_at: string
+          promotion_id: string
+          store_id: string
+        }
+        Insert: {
+          created_at?: string
+          promotion_id: string
+          store_id: string
+        }
+        Update: {
+          created_at?: string
+          promotion_id?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotion_stores_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "promotions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_stores_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       promotions: {
         Row: {
           banner_attachment_id: string | null
