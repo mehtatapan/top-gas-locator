@@ -1,0 +1,2 @@
+DROP POLICY IF EXISTS promotion_stores_read ON public.promotion_stores;
+CREATE POLICY promotion_stores_read ON public.promotion_stores FOR SELECT TO authenticated USING (has_permission(auth.uid(), 'promotions.view') OR is_admin(auth.uid()));
