@@ -13,13 +13,19 @@ import {
 } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import { Gamepad2, Lock, Plus, Unlock } from "lucide-react";
+import { AlertTriangle, Gamepad2, Lock, Pencil, Plus, Trash2, Unlock } from "lucide-react";
 
 type PeriodStatus = "open" | "closed";
-type TxnType = "cash_in" | "payout" | "adjustment";
-const TXN_TYPES: TxnType[] = ["cash_in", "payout", "adjustment"];
+type EntryType = "gaming_machine" | "kiosk_add" | "bank_deposit" | "cash_on_side" | "manual_payout";
+
+const ENTRY_LABELS: Record<EntryType, string> = {
+  gaming_machine: "Money from Gaming Machines",
+  kiosk_add: "Money added to Kiosk",
+  bank_deposit: "Bank Deposit",
+  cash_on_side: "Cash on Side",
+  manual_payout: "Manual Payout",
+};
 
 interface StoreLite { id: string; name: string }
 interface Period {
@@ -28,31 +34,66 @@ interface Period {
   period_start: string;
   period_end: string | null;
   status: PeriodStatus;
+  starting_kiosk_amount: number;
+  ending_kiosk_amount: number | null;
   notes: string | null;
   created_at: string;
   stores?: { id: string; name: string } | null;
 }
-interface Txn {
+interface Entry {
   id: string;
   period_id: string;
-  machine_id: string | null;
-  type: string;
+  entry_type: EntryType;
   amount: number;
-  occurred_at: string;
+  kiosk_current: number | null;
+  bank_deposit_split: number | null;
+  cash_on_side_split: number | null;
+  kiosk_added_split: number | null;
   notes: string | null;
-}
-interface ManualPayout {
-  id: string;
-  period_id: string;
-  amount: number;
   reason: string | null;
-  paid_at: string;
+  occurred_at: string;
 }
 
 const fmtMoney = (n: number) =>
   new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(n);
-const fmt = (iso: string | null) =>
+const fmtDT = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "—";
+
+// datetime-local <-> ISO helpers
+const toLocalInput = (iso: string) => {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+const fromLocalInput = (s: string) => new Date(s).toISOString();
+
+function computeTotals(period: Period, entries: Entry[]) {
+  const gaming = entries.filter((e) => e.entry_type === "gaming_machine");
+  const totalGaming = gaming.reduce((s, e) => s + Number(e.amount || 0), 0);
+  const totalKioskAdded =
+    entries.filter((e) => e.entry_type === "kiosk_add").reduce((s, e) => s + Number(e.amount || 0), 0) +
+    gaming.reduce((s, e) => s + Number(e.kiosk_added_split || 0), 0);
+  const totalBankDeposit =
+    entries.filter((e) => e.entry_type === "bank_deposit").reduce((s, e) => s + Number(e.amount || 0), 0) +
+    gaming.reduce((s, e) => s + Number(e.bank_deposit_split || 0), 0);
+  const totalCashOnSide =
+    entries.filter((e) => e.entry_type === "cash_on_side").reduce((s, e) => s + Number(e.amount || 0), 0) +
+    gaming.reduce((s, e) => s + Number(e.cash_on_side_split || 0), 0);
+  const totalManualPayout = entries.filter((e) => e.entry_type === "manual_payout").reduce((s, e) => s + Number(e.amount || 0), 0);
+
+  // Most recent kiosk snapshot (from gaming_machine entries)
+  const sortedGaming = [...gaming].sort((a, b) => +new Date(b.occurred_at) - +new Date(a.occurred_at));
+  const mostRecentKiosk = sortedGaming[0]?.kiosk_current;
+  const kioskNow = period.status === "closed" && period.ending_kiosk_amount != null
+    ? Number(period.ending_kiosk_amount)
+    : (mostRecentKiosk != null ? Number(mostRecentKiosk) : 0);
+
+  const net = totalGaming + kioskNow - totalKioskAdded - Number(period.starting_kiosk_amount || 0);
+  const accountedFor = totalBankDeposit + totalCashOnSide;
+  const unaccounted = net - accountedFor; // positive = missing cash
+
+  return { totalGaming, totalKioskAdded, totalBankDeposit, totalCashOnSide, totalManualPayout, kioskNow, net, accountedFor, unaccounted };
+}
 
 export default function GamingPage() {
   const qc = useQueryClient();
@@ -65,12 +106,12 @@ export default function GamingPage() {
   const [statusFilter, setStatusFilter] = useState<PeriodStatus | "all">("all");
   const [opening, setOpening] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [closingPeriod, setClosingPeriod] = useState<Period | null>(null);
 
   const storesQ = useQuery({
     queryKey: ["stores-lite"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("stores").select("id, name").eq("active", true).order("name");
+      const { data, error } = await supabase.from("stores").select("id, name").eq("active", true).order("name");
       if (error) throw error;
       return data as StoreLite[];
     },
@@ -81,12 +122,33 @@ export default function GamingPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("gaming_periods")
-        .select("id, store_id, period_start, period_end, status, notes, created_at, stores(id, name)")
+        .select("id, store_id, period_start, period_end, status, starting_kiosk_amount, ending_kiosk_amount, notes, created_at, stores(id, name)")
         .order("period_start", { ascending: false });
       if (error) throw error;
       return data as unknown as Period[];
     },
   });
+
+  const entriesAllQ = useQuery({
+    queryKey: ["admin", "gaming-entries-all"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("gaming_entries")
+        .select("id, period_id, entry_type, amount, kiosk_current, bank_deposit_split, cash_on_side_split, kiosk_added_split, notes, reason, occurred_at");
+      if (error) throw error;
+      return data as Entry[];
+    },
+  });
+
+  const entriesByPeriod = useMemo(() => {
+    const map = new Map<string, Entry[]>();
+    for (const e of entriesAllQ.data ?? []) {
+      const arr = map.get(e.period_id) ?? [];
+      arr.push(e);
+      map.set(e.period_id, arr);
+    }
+    return map;
+  }, [entriesAllQ.data]);
 
   const filtered = useMemo(() => {
     return (periodsQ.data ?? []).filter((p) => {
@@ -96,25 +158,10 @@ export default function GamingPage() {
     });
   }, [periodsQ.data, storeFilter, statusFilter]);
 
-  const closePeriod = useMutation({
-    mutationFn: async (p: Period) => {
-      const { error } = await supabase
-        .from("gaming_periods")
-        .update({ status: "closed", period_end: new Date().toISOString(), closed_by: user?.id ?? null })
-        .eq("id", p.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast({ title: "Period closed" });
-      qc.invalidateQueries({ queryKey: ["admin", "gaming-periods"] });
-    },
-    onError: (e: Error) => toast({ title: "Failed", description: e.message, variant: "destructive" }),
-  });
-
   const reopenPeriod = useMutation({
     mutationFn: async (p: Period) => {
       const { error } = await supabase
-        .from("gaming_periods").update({ status: "open", period_end: null }).eq("id", p.id);
+        .from("gaming_periods").update({ status: "open", period_end: null, ending_kiosk_amount: null }).eq("id", p.id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -124,9 +171,7 @@ export default function GamingPage() {
     onError: (e: Error) => toast({ title: "Failed", description: e.message, variant: "destructive" }),
   });
 
-  const selected = filtered.find((p) => p.id === selectedId)
-    ?? (periodsQ.data ?? []).find((p) => p.id === selectedId)
-    ?? null;
+  const selected = (periodsQ.data ?? []).find((p) => p.id === selectedId) ?? null;
 
   return (
     <div className="space-y-6">
@@ -134,7 +179,7 @@ export default function GamingPage() {
         <div>
           <h1 className="text-2xl font-bold">Gaming</h1>
           <p className="text-sm text-muted-foreground">
-            Track gaming machine periods, cash-ins, payouts and manual disbursements per store.
+            Track gaming machine periods with kiosk balances, deposits and cash reconciliation per store.
           </p>
         </div>
         {canOpen && (
@@ -162,60 +207,63 @@ export default function GamingPage() {
         </Select>
       </div>
 
-      <div className="rounded-lg border bg-card">
+      <div className="rounded-lg border bg-card overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Store</TableHead>
-              <TableHead>Period start</TableHead>
-              <TableHead>Period end</TableHead>
+              <TableHead>Start</TableHead>
+              <TableHead>End</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="text-right">Running Net</TableHead>
+              <TableHead className="text-right">Unaccounted</TableHead>
               <TableHead className="w-40 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {periodsQ.isLoading && (
-              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Loading…</TableCell></TableRow>
-            )}
-            {periodsQ.error && (
-              <TableRow><TableCell colSpan={5} className="text-center text-destructive">{(periodsQ.error as Error).message}</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Loading…</TableCell></TableRow>
             )}
             {!periodsQ.isLoading && filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="py-10 text-center">
+                <TableCell colSpan={7} className="py-10 text-center">
                   <Gamepad2 className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">No gaming periods yet.</p>
                 </TableCell>
               </TableRow>
             )}
-            {filtered.map((p) => (
-              <TableRow key={p.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedId(p.id)}>
-                <TableCell className="font-medium">{p.stores?.name ?? "—"}</TableCell>
-                <TableCell className="text-muted-foreground">{fmt(p.period_start)}</TableCell>
-                <TableCell className="text-muted-foreground">{fmt(p.period_end)}</TableCell>
-                <TableCell>
-                  {p.status === "open"
-                    ? <Badge>Open</Badge>
-                    : <Badge variant="outline">Closed</Badge>}
-                </TableCell>
-                <TableCell className="text-right space-x-1" onClick={(e) => e.stopPropagation()}>
-                  {p.status === "open" && canClose && (
-                    <Button size="sm" variant="outline" onClick={() => {
-                      if (confirm("Close this period?")) closePeriod.mutate(p);
-                    }}>
-                      <Lock className="mr-1 h-3.5 w-3.5" /> Close
-                    </Button>
-                  )}
-                  {p.status === "closed" && canOpen && (
-                    <Button size="sm" variant="ghost" onClick={() => {
-                      if (confirm("Reopen this period?")) reopenPeriod.mutate(p);
-                    }}>
-                      <Unlock className="mr-1 h-3.5 w-3.5" /> Reopen
-                    </Button>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
+            {filtered.map((p) => {
+              const t = computeTotals(p, entriesByPeriod.get(p.id) ?? []);
+              const unaccounted = t.unaccounted > 0.005;
+              return (
+                <TableRow key={p.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedId(p.id)}>
+                  <TableCell className="font-medium">{p.stores?.name ?? "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{fmtDT(p.period_start)}</TableCell>
+                  <TableCell className="text-muted-foreground">{fmtDT(p.period_end)}</TableCell>
+                  <TableCell>
+                    {p.status === "open" ? <Badge>Open</Badge> : <Badge variant="outline">Closed</Badge>}
+                  </TableCell>
+                  <TableCell className="text-right font-mono">{fmtMoney(t.net)}</TableCell>
+                  <TableCell className={`text-right font-mono ${unaccounted ? "text-destructive font-semibold" : "text-muted-foreground"}`}>
+                    {unaccounted ? fmtMoney(t.unaccounted) : "—"}
+                  </TableCell>
+                  <TableCell className="text-right space-x-1" onClick={(e) => e.stopPropagation()}>
+                    {p.status === "open" && canClose && (
+                      <Button size="sm" variant="outline" onClick={() => setClosingPeriod(p)}>
+                        <Lock className="mr-1 h-3.5 w-3.5" /> Close
+                      </Button>
+                    )}
+                    {p.status === "closed" && canOpen && (
+                      <Button size="sm" variant="ghost" onClick={() => {
+                        if (confirm("Reopen this period?")) reopenPeriod.mutate(p);
+                      }}>
+                        <Unlock className="mr-1 h-3.5 w-3.5" /> Reopen
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>
@@ -232,21 +280,38 @@ export default function GamingPage() {
         />
       )}
 
+      {closingPeriod && (
+        <ClosePeriodDialog
+          period={closingPeriod}
+          userId={user?.id ?? null}
+          onClose={() => setClosingPeriod(null)}
+          onSaved={() => {
+            setClosingPeriod(null);
+            qc.invalidateQueries({ queryKey: ["admin", "gaming-periods"] });
+          }}
+        />
+      )}
+
       {selected && (
         <PeriodDrawer
           period={selected}
           canTxn={canTxn}
+          canClose={canClose}
           onClose={() => setSelectedId(null)}
+          onRequestClosePeriod={() => setClosingPeriod(selected)}
         />
       )}
     </div>
   );
 }
 
+/* ---------------- Open Period ---------------- */
 function OpenPeriodDialog({
   stores, userId, onClose, onSaved,
 }: { stores: StoreLite[]; userId: string | null; onClose: () => void; onSaved: () => void }) {
   const [storeId, setStoreId] = useState<string>(stores[0]?.id ?? "");
+  const [startAt, setStartAt] = useState<string>(toLocalInput(new Date().toISOString()));
+  const [startingKiosk, setStartingKiosk] = useState<string>("");
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -254,11 +319,14 @@ function OpenPeriodDialog({
     setBusy(true);
     try {
       if (!storeId) throw new Error("Select a store");
+      const amt = parseFloat(startingKiosk);
+      if (!isFinite(amt) || amt < 0) throw new Error("Enter a valid starting kiosk amount");
       const { error } = await supabase.from("gaming_periods").insert({
         store_id: storeId,
-        period_start: new Date().toISOString(),
+        period_start: fromLocalInput(startAt),
         status: "open",
         opened_by: userId,
+        starting_kiosk_amount: amt,
         notes: notes.trim() || null,
       });
       if (error) throw error;
@@ -276,9 +344,7 @@ function OpenPeriodDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Open gaming period</DialogTitle>
-          <DialogDescription>
-            Starts a new period timed to now. Record cash-ins and payouts against it, then close when done.
-          </DialogDescription>
+          <DialogDescription>Set the start date and starting kiosk cash.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div>
@@ -290,9 +356,19 @@ function OpenPeriodDialog({
               </SelectContent>
             </Select>
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Start date</Label>
+              <Input type="datetime-local" value={startAt} onChange={(e) => setStartAt(e.target.value)} />
+            </div>
+            <div>
+              <Label>Starting kiosk amount</Label>
+              <Input type="number" step="0.01" min="0" placeholder="0.00" value={startingKiosk} onChange={(e) => setStartingKiosk(e.target.value)} />
+            </div>
+          </div>
           <div>
             <Label>Notes (optional)</Label>
-            <Textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
+            <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
         </div>
         <DialogFooter>
@@ -304,227 +380,498 @@ function OpenPeriodDialog({
   );
 }
 
+/* ---------------- Close Period ---------------- */
+function ClosePeriodDialog({
+  period, userId, onClose, onSaved,
+}: { period: Period; userId: string | null; onClose: () => void; onSaved: () => void }) {
+  const [endAt, setEndAt] = useState<string>(toLocalInput(period.period_end ?? new Date().toISOString()));
+  const [endingKiosk, setEndingKiosk] = useState<string>(period.ending_kiosk_amount != null ? String(period.ending_kiosk_amount) : "");
+  const [busy, setBusy] = useState(false);
+
+  const save = async () => {
+    setBusy(true);
+    try {
+      const amt = parseFloat(endingKiosk);
+      if (!isFinite(amt) || amt < 0) throw new Error("Enter a valid ending kiosk amount");
+      const { error } = await supabase.from("gaming_periods").update({
+        status: "closed",
+        period_end: fromLocalInput(endAt),
+        ending_kiosk_amount: amt,
+        closed_by: userId,
+      }).eq("id", period.id);
+      if (error) throw error;
+      toast({ title: "Period closed" });
+      onSaved();
+    } catch (e) {
+      toast({ title: "Failed", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Close gaming period</DialogTitle>
+          <DialogDescription>Enter the ending date and the cash currently in the kiosk.</DialogDescription>
+        </DialogHeader>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label>End date</Label>
+            <Input type="datetime-local" value={endAt} onChange={(e) => setEndAt(e.target.value)} />
+          </div>
+          <div>
+            <Label>Ending kiosk amount</Label>
+            <Input type="number" step="0.01" min="0" placeholder="0.00" value={endingKiosk} onChange={(e) => setEndingKiosk(e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={busy}>Cancel</Button>
+          <Button onClick={save} disabled={busy}>{busy ? "Closing…" : "Close period"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ---------------- Period Drawer ---------------- */
 function PeriodDrawer({
-  period, canTxn, onClose,
-}: { period: Period; canTxn: boolean; onClose: () => void }) {
+  period, canTxn, canClose, onClose, onRequestClosePeriod,
+}: {
+  period: Period;
+  canTxn: boolean;
+  canClose: boolean;
+  onClose: () => void;
+  onRequestClosePeriod: () => void;
+}) {
   const qc = useQueryClient();
   const closed = period.status === "closed";
+  const [editingPeriod, setEditingPeriod] = useState(false);
+  const [addingEntry, setAddingEntry] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
 
-  const txnsQ = useQuery({
-    queryKey: ["gaming-txns", period.id],
+  const entriesQ = useQuery({
+    queryKey: ["gaming-entries", period.id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("gaming_transactions")
-        .select("id, period_id, machine_id, type, amount, occurred_at, notes")
+        .from("gaming_entries")
+        .select("id, period_id, entry_type, amount, kiosk_current, bank_deposit_split, cash_on_side_split, kiosk_added_split, notes, reason, occurred_at")
         .eq("period_id", period.id)
         .order("occurred_at", { ascending: false });
       if (error) throw error;
-      return data as Txn[];
+      return data as Entry[];
     },
   });
 
-  const payoutsQ = useQuery({
-    queryKey: ["gaming-payouts", period.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("gaming_manual_payouts")
-        .select("id, period_id, amount, reason, paid_at")
-        .eq("period_id", period.id)
-        .order("paid_at", { ascending: false });
-      if (error) throw error;
-      return data as ManualPayout[];
-    },
-  });
+  const totals = useMemo(() => computeTotals(period, entriesQ.data ?? []), [period, entriesQ.data]);
+  const unaccounted = totals.unaccounted > 0.005;
 
-  const totals = useMemo(() => {
-    const txns = txnsQ.data ?? [];
-    const payouts = payoutsQ.data ?? [];
-    const cashIn = txns.filter((t) => t.type === "cash_in").reduce((s, t) => s + Number(t.amount), 0);
-    const machinePayouts = txns.filter((t) => t.type === "payout").reduce((s, t) => s + Number(t.amount), 0);
-    const adjustments = txns.filter((t) => t.type === "adjustment").reduce((s, t) => s + Number(t.amount), 0);
-    const manual = payouts.reduce((s, p) => s + Number(p.amount), 0);
-    const net = cashIn - machinePayouts - manual + adjustments;
-    return { cashIn, machinePayouts, adjustments, manual, net };
-  }, [txnsQ.data, payoutsQ.data]);
-
-  const [txnForm, setTxnForm] = useState({ type: "cash_in" as TxnType, machine_id: "", amount: "", notes: "" });
-  const [payoutForm, setPayoutForm] = useState({ amount: "", reason: "" });
-
-  const addTxn = useMutation({
-    mutationFn: async () => {
-      const amt = parseFloat(txnForm.amount);
-      if (!isFinite(amt) || amt === 0) throw new Error("Amount must be a non-zero number");
-      const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await supabase.from("gaming_transactions").insert({
-        period_id: period.id,
-        type: txnForm.type,
-        amount: amt,
-        machine_id: txnForm.machine_id.trim() || null,
-        notes: txnForm.notes.trim() || null,
-        created_by: user?.id ?? null,
-      });
+  const delEntry = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("gaming_entries").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Transaction recorded" });
-      setTxnForm({ type: "cash_in", machine_id: "", amount: "", notes: "" });
-      qc.invalidateQueries({ queryKey: ["gaming-txns", period.id] });
-    },
-    onError: (e: Error) => toast({ title: "Failed", description: e.message, variant: "destructive" }),
-  });
-
-  const addPayout = useMutation({
-    mutationFn: async () => {
-      const amt = parseFloat(payoutForm.amount);
-      if (!isFinite(amt) || amt <= 0) throw new Error("Amount must be positive");
-      const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await supabase.from("gaming_manual_payouts").insert({
-        period_id: period.id,
-        amount: amt,
-        reason: payoutForm.reason.trim() || null,
-        paid_by: user?.id ?? null,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast({ title: "Manual payout recorded" });
-      setPayoutForm({ amount: "", reason: "" });
-      qc.invalidateQueries({ queryKey: ["gaming-payouts", period.id] });
+      toast({ title: "Entry deleted" });
+      qc.invalidateQueries({ queryKey: ["gaming-entries", period.id] });
+      qc.invalidateQueries({ queryKey: ["admin", "gaming-entries-all"] });
     },
     onError: (e: Error) => toast({ title: "Failed", description: e.message, variant: "destructive" }),
   });
 
   return (
     <Sheet open onOpenChange={(o) => !o && onClose()}>
-      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+      <SheetContent className="w-full sm:max-w-3xl overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>{period.stores?.name} — {fmt(period.period_start)}</SheetTitle>
+          <SheetTitle>{period.stores?.name} — {fmtDT(period.period_start)}</SheetTitle>
           <SheetDescription>
-            Status: {closed ? "Closed" : "Open"}
-            {period.period_end && ` · Ended ${fmt(period.period_end)}`}
+            {closed ? "Closed" : "Open"} · Starting kiosk {fmtMoney(Number(period.starting_kiosk_amount || 0))}
+            {period.period_end && ` · Ended ${fmtDT(period.period_end)}`}
+            {period.ending_kiosk_amount != null && ` · Ending kiosk ${fmtMoney(Number(period.ending_kiosk_amount))}`}
           </SheetDescription>
         </SheetHeader>
 
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <SummaryCard label="Cash in" value={fmtMoney(totals.cashIn)} />
-          <SummaryCard label="Machine payouts" value={fmtMoney(totals.machinePayouts)} />
-          <SummaryCard label="Manual payouts" value={fmtMoney(totals.manual)} />
-          <SummaryCard label="Net" value={fmtMoney(totals.net)} highlight />
+        <div className="mt-4 flex flex-wrap gap-2">
+          {canTxn && (
+            <Button size="sm" variant="outline" onClick={() => setEditingPeriod(true)}>
+              <Pencil className="mr-1 h-3.5 w-3.5" /> Edit period
+            </Button>
+          )}
+          {!closed && canClose && (
+            <Button size="sm" onClick={onRequestClosePeriod}>
+              <Lock className="mr-1 h-3.5 w-3.5" /> Close period
+            </Button>
+          )}
         </div>
 
-        <Tabs defaultValue="txns" className="mt-6">
-          <TabsList>
-            <TabsTrigger value="txns">Transactions</TabsTrigger>
-            <TabsTrigger value="payouts">Manual payouts</TabsTrigger>
-          </TabsList>
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <SummaryCard label="Gaming machines" value={fmtMoney(totals.totalGaming)} />
+          <SummaryCard label="Kiosk added" value={fmtMoney(totals.totalKioskAdded)} />
+          <SummaryCard label="Bank deposits" value={fmtMoney(totals.totalBankDeposit)} />
+          <SummaryCard label="Cash on side" value={fmtMoney(totals.totalCashOnSide)} />
+          <SummaryCard label="Manual payouts" value={fmtMoney(totals.totalManualPayout)} />
+          <SummaryCard label={closed ? "Ending kiosk" : "Kiosk (most recent)"} value={fmtMoney(totals.kioskNow)} />
+          <SummaryCard label="Running net" value={fmtMoney(totals.net)} highlight />
+          <SummaryCard
+            label="Cash unaccounted"
+            value={unaccounted ? fmtMoney(totals.unaccounted) : "—"}
+            tone={unaccounted ? "danger" : undefined}
+          />
+        </div>
 
-          <TabsContent value="txns" className="space-y-4">
-            {canTxn && !closed && (
-              <div className="rounded-lg border bg-muted/30 p-3">
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-                  <Select value={txnForm.type} onValueChange={(v) => setTxnForm((f) => ({ ...f, type: v as TxnType }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {TXN_TYPES.map((t) => <SelectItem key={t} value={t}>{t.replace("_", " ")}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <Input placeholder="Machine ID" value={txnForm.machine_id}
-                    onChange={(e) => setTxnForm((f) => ({ ...f, machine_id: e.target.value }))} />
-                  <Input type="number" step="0.01" placeholder="Amount" value={txnForm.amount}
-                    onChange={(e) => setTxnForm((f) => ({ ...f, amount: e.target.value }))} />
-                  <Input placeholder="Notes" value={txnForm.notes}
-                    onChange={(e) => setTxnForm((f) => ({ ...f, notes: e.target.value }))} />
-                  <Button onClick={() => addTxn.mutate()} disabled={addTxn.isPending}>
-                    <Plus className="mr-1 h-4 w-4" /> Add
-                  </Button>
-                </div>
-              </div>
-            )}
-            <div className="rounded-lg border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>When</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Machine</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead>Notes</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(txnsQ.data ?? []).length === 0 && (
-                    <TableRow><TableCell colSpan={5} className="py-6 text-center text-sm text-muted-foreground">No transactions</TableCell></TableRow>
-                  )}
-                  {(txnsQ.data ?? []).map((t) => (
-                    <TableRow key={t.id}>
-                      <TableCell className="text-xs text-muted-foreground">{fmt(t.occurred_at)}</TableCell>
-                      <TableCell><Badge variant="outline">{t.type.replace("_", " ")}</Badge></TableCell>
-                      <TableCell className="text-muted-foreground">{t.machine_id ?? "—"}</TableCell>
-                      <TableCell className="text-right font-mono">{fmtMoney(Number(t.amount))}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{t.notes ?? ""}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+        {unaccounted && (
+          <div className="mt-3 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+            <AlertTriangle className="mt-0.5 h-4 w-4" />
+            <div>
+              Bank deposits + cash on side ({fmtMoney(totals.accountedFor)}) is less than the running net ({fmtMoney(totals.net)}).
+              Missing: <span className="font-semibold">{fmtMoney(totals.unaccounted)}</span>.
             </div>
-          </TabsContent>
+          </div>
+        )}
 
-          <TabsContent value="payouts" className="space-y-4">
-            {canTxn && !closed && (
-              <div className="rounded-lg border bg-muted/30 p-3">
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  <Input type="number" step="0.01" placeholder="Amount" value={payoutForm.amount}
-                    onChange={(e) => setPayoutForm((f) => ({ ...f, amount: e.target.value }))} />
-                  <Input className="sm:col-span-2" placeholder="Reason" value={payoutForm.reason}
-                    onChange={(e) => setPayoutForm((f) => ({ ...f, reason: e.target.value }))} />
-                  <Button onClick={() => addPayout.mutate()} disabled={addPayout.isPending}>
-                    <Plus className="mr-1 h-4 w-4" /> Record
-                  </Button>
-                </div>
-              </div>
-            )}
-            <div className="rounded-lg border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>When</TableHead>
-                    <TableHead>Reason</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(payoutsQ.data ?? []).length === 0 && (
-                    <TableRow><TableCell colSpan={3} className="py-6 text-center text-sm text-muted-foreground">No manual payouts</TableCell></TableRow>
-                  )}
-                  {(payoutsQ.data ?? []).map((p) => (
-                    <TableRow key={p.id}>
-                      <TableCell className="text-xs text-muted-foreground">{fmt(p.paid_at)}</TableCell>
-                      <TableCell>{p.reason ?? "—"}</TableCell>
-                      <TableCell className="text-right font-mono">{fmtMoney(Number(p.amount))}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </TabsContent>
-        </Tabs>
+        <div className="mt-6 flex items-center justify-between">
+          <h3 className="font-semibold">Entries</h3>
+          {canTxn && (
+            <Button size="sm" onClick={() => setAddingEntry(true)}>
+              <Plus className="mr-1 h-4 w-4" /> Add entry
+            </Button>
+          )}
+        </div>
+
+        <div className="mt-2 rounded-lg border overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>When</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+                <TableHead>Details</TableHead>
+                <TableHead className="w-20 text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {entriesQ.isLoading && (
+                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Loading…</TableCell></TableRow>
+              )}
+              {!entriesQ.isLoading && (entriesQ.data ?? []).length === 0 && (
+                <TableRow><TableCell colSpan={5} className="py-6 text-center text-sm text-muted-foreground">No entries yet</TableCell></TableRow>
+              )}
+              {(entriesQ.data ?? []).map((e) => (
+                <TableRow key={e.id}>
+                  <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{fmtDT(e.occurred_at)}</TableCell>
+                  <TableCell><Badge variant="outline">{ENTRY_LABELS[e.entry_type]}</Badge></TableCell>
+                  <TableCell className="text-right font-mono">{fmtMoney(Number(e.amount))}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {e.entry_type === "gaming_machine" && (
+                      <div className="space-y-0.5">
+                        <div>Kiosk now: <span className="font-mono">{fmtMoney(Number(e.kiosk_current ?? 0))}</span></div>
+                        {(e.bank_deposit_split || e.cash_on_side_split || e.kiosk_added_split) ? (
+                          <div>
+                            Split — Bank {fmtMoney(Number(e.bank_deposit_split ?? 0))} · Side {fmtMoney(Number(e.cash_on_side_split ?? 0))} · Kiosk {fmtMoney(Number(e.kiosk_added_split ?? 0))}
+                          </div>
+                        ) : null}
+                        {e.notes && <div>{e.notes}</div>}
+                      </div>
+                    )}
+                    {e.entry_type !== "gaming_machine" && (e.reason || e.notes || "—")}
+                  </TableCell>
+                  <TableCell className="text-right space-x-1">
+                    {canTxn && (
+                      <>
+                        <Button size="sm" variant="ghost" onClick={() => setEditingEntry(e)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => {
+                          if (confirm("Delete this entry?")) delEntry.mutate(e.id);
+                        }}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
 
         {period.notes && (
-          <div className="mt-6 rounded border bg-muted/30 p-3 text-sm">
+          <div className="mt-4 rounded border bg-muted/30 p-3 text-sm">
             <p className="mb-1 font-medium">Notes</p>
             <p className="text-muted-foreground whitespace-pre-wrap">{period.notes}</p>
           </div>
+        )}
+
+        {editingPeriod && (
+          <EditPeriodDialog
+            period={period}
+            onClose={() => setEditingPeriod(false)}
+            onSaved={() => {
+              setEditingPeriod(false);
+              qc.invalidateQueries({ queryKey: ["admin", "gaming-periods"] });
+            }}
+          />
+        )}
+
+        {(addingEntry || editingEntry) && (
+          <EntryDialog
+            periodId={period.id}
+            entry={editingEntry}
+            onClose={() => { setAddingEntry(false); setEditingEntry(null); }}
+            onSaved={() => {
+              setAddingEntry(false);
+              setEditingEntry(null);
+              qc.invalidateQueries({ queryKey: ["gaming-entries", period.id] });
+              qc.invalidateQueries({ queryKey: ["admin", "gaming-entries-all"] });
+            }}
+          />
         )}
       </SheetContent>
     </Sheet>
   );
 }
 
-function SummaryCard({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+/* ---------------- Edit Period (dates + kiosk amounts + notes) ---------------- */
+function EditPeriodDialog({
+  period, onClose, onSaved,
+}: { period: Period; onClose: () => void; onSaved: () => void }) {
+  const [startAt, setStartAt] = useState(toLocalInput(period.period_start));
+  const [endAt, setEndAt] = useState(period.period_end ? toLocalInput(period.period_end) : "");
+  const [startingKiosk, setStartingKiosk] = useState(String(period.starting_kiosk_amount ?? ""));
+  const [endingKiosk, setEndingKiosk] = useState(period.ending_kiosk_amount != null ? String(period.ending_kiosk_amount) : "");
+  const [notes, setNotes] = useState(period.notes ?? "");
+  const [busy, setBusy] = useState(false);
+
+  const save = async () => {
+    setBusy(true);
+    try {
+      const startAmt = parseFloat(startingKiosk);
+      if (!isFinite(startAmt) || startAmt < 0) throw new Error("Invalid starting kiosk amount");
+      const payload: Record<string, unknown> = {
+        period_start: fromLocalInput(startAt),
+        starting_kiosk_amount: startAmt,
+        notes: notes.trim() || null,
+      };
+      if (period.status === "closed") {
+        if (!endAt) throw new Error("End date required");
+        const endAmt = parseFloat(endingKiosk);
+        if (!isFinite(endAmt) || endAmt < 0) throw new Error("Invalid ending kiosk amount");
+        payload.period_end = fromLocalInput(endAt);
+        payload.ending_kiosk_amount = endAmt;
+      } else if (endAt) {
+        payload.period_end = fromLocalInput(endAt);
+      }
+      const { error } = await supabase.from("gaming_periods").update(payload as never).eq("id", period.id);
+      if (error) throw error;
+      toast({ title: "Period updated" });
+      onSaved();
+    } catch (e) {
+      toast({ title: "Failed", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
-    <div className={`rounded-lg border p-3 ${highlight ? "bg-primary/5 border-primary/40" : "bg-card"}`}>
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit period</DialogTitle>
+          <DialogDescription>Adjust the dates, kiosk amounts and notes.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Start date</Label>
+              <Input type="datetime-local" value={startAt} onChange={(e) => setStartAt(e.target.value)} />
+            </div>
+            <div>
+              <Label>Starting kiosk amount</Label>
+              <Input type="number" step="0.01" min="0" value={startingKiosk} onChange={(e) => setStartingKiosk(e.target.value)} />
+            </div>
+            {period.status === "closed" && (
+              <>
+                <div>
+                  <Label>End date</Label>
+                  <Input type="datetime-local" value={endAt} onChange={(e) => setEndAt(e.target.value)} />
+                </div>
+                <div>
+                  <Label>Ending kiosk amount</Label>
+                  <Input type="number" step="0.01" min="0" value={endingKiosk} onChange={(e) => setEndingKiosk(e.target.value)} />
+                </div>
+              </>
+            )}
+          </div>
+          <div>
+            <Label>Notes</Label>
+            <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={busy}>Cancel</Button>
+          <Button onClick={save} disabled={busy}>{busy ? "Saving…" : "Save"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ---------------- Add / Edit Entry ---------------- */
+function EntryDialog({
+  periodId, entry, onClose, onSaved,
+}: { periodId: string; entry: Entry | null; onClose: () => void; onSaved: () => void }) {
+  const isEdit = !!entry;
+  const [type, setType] = useState<EntryType>(entry?.entry_type ?? "gaming_machine");
+  const [amount, setAmount] = useState(entry ? String(entry.amount) : "");
+  const [occurredAt, setOccurredAt] = useState(toLocalInput(entry?.occurred_at ?? new Date().toISOString()));
+  const [kioskCurrent, setKioskCurrent] = useState(entry?.kiosk_current != null ? String(entry.kiosk_current) : "");
+  const [bankSplit, setBankSplit] = useState(entry?.bank_deposit_split != null ? String(entry.bank_deposit_split) : "");
+  const [sideSplit, setSideSplit] = useState(entry?.cash_on_side_split != null ? String(entry.cash_on_side_split) : "");
+  const [kioskSplit, setKioskSplit] = useState(entry?.kiosk_added_split != null ? String(entry.kiosk_added_split) : "");
+  const [reason, setReason] = useState(entry?.reason ?? "");
+  const [notes, setNotes] = useState(entry?.notes ?? "");
+  const [busy, setBusy] = useState(false);
+
+  const numOrNull = (s: string) => {
+    const n = parseFloat(s);
+    return isFinite(n) ? n : null;
+  };
+
+  const save = async () => {
+    setBusy(true);
+    try {
+      const amt = parseFloat(amount);
+      if (!isFinite(amt) || amt < 0) throw new Error("Amount must be a valid number");
+
+      const payload: Record<string, unknown> = {
+        period_id: periodId,
+        entry_type: type,
+        amount: amt,
+        occurred_at: fromLocalInput(occurredAt),
+        notes: notes.trim() || null,
+        reason: reason.trim() || null,
+        kiosk_current: null,
+        bank_deposit_split: null,
+        cash_on_side_split: null,
+        kiosk_added_split: null,
+      };
+
+      if (type === "gaming_machine") {
+        const k = numOrNull(kioskCurrent);
+        if (k == null || k < 0) throw new Error("Kiosk current amount is required");
+        payload.kiosk_current = k;
+        payload.bank_deposit_split = numOrNull(bankSplit) ?? 0;
+        payload.cash_on_side_split = numOrNull(sideSplit) ?? 0;
+        payload.kiosk_added_split = numOrNull(kioskSplit) ?? 0;
+      }
+
+      if (isEdit && entry) {
+        const { error } = await supabase.from("gaming_entries").update(payload as never).eq("id", entry.id);
+        if (error) throw error;
+      } else {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { error } = await supabase.from("gaming_entries").insert({ ...payload, created_by: user?.id ?? null } as never);
+        if (error) throw error;
+      }
+      toast({ title: isEdit ? "Entry updated" : "Entry added" });
+      onSaved();
+    } catch (e) {
+      toast({ title: "Failed", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? "Edit entry" : "Add entry"}</DialogTitle>
+          <DialogDescription>Record activity against this gaming period.</DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Type</Label>
+              <Select value={type} onValueChange={(v) => setType(v as EntryType)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(ENTRY_LABELS) as EntryType[]).map((k) => (
+                    <SelectItem key={k} value={k}>{ENTRY_LABELS[k]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>When</Label>
+              <Input type="datetime-local" value={occurredAt} onChange={(e) => setOccurredAt(e.target.value)} />
+            </div>
+            <div className="col-span-2">
+              <Label>{type === "gaming_machine" ? "Total money from gaming machines" : "Amount"}</Label>
+              <Input type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} />
+            </div>
+          </div>
+
+          {type === "gaming_machine" && (
+            <div className="rounded-md border bg-muted/30 p-3 space-y-3">
+              <div>
+                <Label>Money currently in the kiosk *</Label>
+                <Input type="number" step="0.01" min="0" value={kioskCurrent} onChange={(e) => setKioskCurrent(e.target.value)} />
+              </div>
+              <p className="text-xs text-muted-foreground">Optionally split how this money is being handled:</p>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <Label className="text-xs">To bank</Label>
+                  <Input type="number" step="0.01" min="0" placeholder="0.00" value={bankSplit} onChange={(e) => setBankSplit(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs">Cash on side</Label>
+                  <Input type="number" step="0.01" min="0" placeholder="0.00" value={sideSplit} onChange={(e) => setSideSplit(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs">Back into kiosk</Label>
+                  <Input type="number" step="0.01" min="0" placeholder="0.00" value={kioskSplit} onChange={(e) => setKioskSplit(e.target.value)} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {(type === "bank_deposit" || type === "manual_payout" || type === "cash_on_side") && (
+            <div>
+              <Label>Reason / reference</Label>
+              <Input value={reason} onChange={(e) => setReason(e.target.value)} />
+            </div>
+          )}
+
+          <div>
+            <Label>Notes</Label>
+            <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={busy}>Cancel</Button>
+          <Button onClick={save} disabled={busy}>{busy ? "Saving…" : isEdit ? "Save" : "Add entry"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ---------------- Summary card ---------------- */
+function SummaryCard({
+  label, value, highlight, tone,
+}: { label: string; value: string; highlight?: boolean; tone?: "danger" }) {
+  const border = tone === "danger"
+    ? "border-destructive/50 bg-destructive/5"
+    : highlight ? "bg-primary/5 border-primary/40" : "bg-card";
+  const valClass = tone === "danger" ? "text-destructive" : "";
+  return (
+    <div className={`rounded-lg border p-3 ${border}`}>
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-1 font-mono text-lg font-semibold">{value}</p>
+      <p className={`mt-1 font-mono text-lg font-semibold ${valClass}`}>{value}</p>
     </div>
   );
 }
