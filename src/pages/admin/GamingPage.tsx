@@ -662,7 +662,7 @@ function EditPeriodDialog({
       } else if (endAt) {
         payload.period_end = fromLocalInput(endAt);
       }
-      const { error } = await supabase.from("gaming_periods").update(payload).eq("id", period.id);
+      const { error } = await supabase.from("gaming_periods").update(payload as never).eq("id", period.id);
       if (error) throw error;
       toast({ title: "Period updated" });
       onSaved();
