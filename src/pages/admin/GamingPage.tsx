@@ -767,11 +767,11 @@ function EntryDialog({
       }
 
       if (isEdit && entry) {
-        const { error } = await supabase.from("gaming_entries").update(payload).eq("id", entry.id);
+        const { error } = await supabase.from("gaming_entries").update(payload as never).eq("id", entry.id);
         if (error) throw error;
       } else {
         const { data: { user } } = await supabase.auth.getUser();
-        const { error } = await supabase.from("gaming_entries").insert({ ...payload, created_by: user?.id ?? null });
+        const { error } = await supabase.from("gaming_entries").insert({ ...payload, created_by: user?.id ?? null } as never);
         if (error) throw error;
       }
       toast({ title: isEdit ? "Entry updated" : "Entry added" });
