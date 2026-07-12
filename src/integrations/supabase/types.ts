@@ -1053,6 +1053,65 @@ export type Database = {
           },
         ]
       }
+      gaming_entries: {
+        Row: {
+          amount: number
+          bank_deposit_split: number | null
+          cash_on_side_split: number | null
+          created_at: string
+          created_by: string | null
+          entry_type: string
+          id: string
+          kiosk_added_split: number | null
+          kiosk_current: number | null
+          notes: string | null
+          occurred_at: string
+          period_id: string
+          reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          bank_deposit_split?: number | null
+          cash_on_side_split?: number | null
+          created_at?: string
+          created_by?: string | null
+          entry_type: string
+          id?: string
+          kiosk_added_split?: number | null
+          kiosk_current?: number | null
+          notes?: string | null
+          occurred_at?: string
+          period_id: string
+          reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          bank_deposit_split?: number | null
+          cash_on_side_split?: number | null
+          created_at?: string
+          created_by?: string | null
+          entry_type?: string
+          id?: string
+          kiosk_added_split?: number | null
+          kiosk_current?: number | null
+          notes?: string | null
+          occurred_at?: string
+          period_id?: string
+          reason?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gaming_entries_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "gaming_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gaming_manual_payouts: {
         Row: {
           amount: number
@@ -1095,11 +1154,13 @@ export type Database = {
         Row: {
           closed_by: string | null
           created_at: string
+          ending_kiosk_amount: number | null
           id: string
           notes: string | null
           opened_by: string | null
           period_end: string | null
           period_start: string
+          starting_kiosk_amount: number
           status: Database["public"]["Enums"]["gaming_period_status"]
           store_id: string
           updated_at: string
@@ -1107,11 +1168,13 @@ export type Database = {
         Insert: {
           closed_by?: string | null
           created_at?: string
+          ending_kiosk_amount?: number | null
           id?: string
           notes?: string | null
           opened_by?: string | null
           period_end?: string | null
           period_start: string
+          starting_kiosk_amount?: number
           status?: Database["public"]["Enums"]["gaming_period_status"]
           store_id: string
           updated_at?: string
@@ -1119,11 +1182,13 @@ export type Database = {
         Update: {
           closed_by?: string | null
           created_at?: string
+          ending_kiosk_amount?: number | null
           id?: string
           notes?: string | null
           opened_by?: string | null
           period_end?: string | null
           period_start?: string
+          starting_kiosk_amount?: number
           status?: Database["public"]["Enums"]["gaming_period_status"]
           store_id?: string
           updated_at?: string
